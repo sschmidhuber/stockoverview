@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.20/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="/public/jquery.dynatable.css">
+    <style>
+    body {
+      padding-top: 5rem;
+    }
+    .nav-link {
+      cursor: pointer;
+    }
+    </style>
+    <title>Stock Overview</title>
+</head>
+<body>
+    <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
+        <a class="nav-link navbar-brand text-white" target="#main-container"><img class="mr-2 align-top" src="favicon.png" width="25 rem">Stock Overview</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExample04" aria-controls="navbarsExample04" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarsExample04">
+          <ul class="navbar-nav mr-auto">
+            <li class="nav-item">
+              <a class="nav-link text-muted" target="#about-container">About<span class="sr-only"></span></a>
+            </li>
+          </ul>
+        </div>
+      </nav>
+
+      <main>
+        <div id="main-container" class="top-level">
+          <div id="stockdata" class="ml-4 mr-4 mt-4">
+          </div>
+          <div class="container">
+            <div id="spinner" class="d-flex justify-content-center mt-4">
+              <div class="spinner-border" role="status">
+                <span class="sr-only">Loading...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="about-container" class="top-level container mt-4" style="display: none;">
+          <h1 class="display-4">About</h1>
+          <p>This is a hobby project, there is no warrenty of any kind regarding the correctness of the displayed data. However, if you find any bugs or incorrect data, please let me know: <a href="mailto:stefan.schmidhuber@gmx.at">stefan.schmidhuber@gmx.at</a>.</p>
+          <p>This web application processes and displays public available data of web services from ING-DiBa AG, Deutsche Börse AG and European Central Bank.</p>
+          <p>"Stock Overview" was built with <a href="https://julialang.org">Julia</a>, <a href="https://github.com/wookay/Bukdu.jl">Bukdu</a>, <a href="https://getbootstrap.com/">Bootstrap</a> and <a href="https://datatables.net/">DataTables</a>.</p>
+
+          <div>Icons made by <a href="https://www.flaticon.com/authors/flat-icons" title="Flat Icons">Flat Icons</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a></div>
+        </div>
+      </main>
+
+    <!--footer class="footer fixed-bottom bg-secondary text-light">
+        <div class="container">
+            <p class="lead mt-2">Contact</p>
+            <p>
+                Stefan Schmidhuber<br>
+                If you found incorrect figures or any other bug, please let me know:
+                <a href="mailto:stefan.schmidhuber@gmx.at" class="text-light">stefan.schmidhuber@gmx.at</a><br>
+            </p>
+        </div>
+    </footer-->
+
+    <!-- import JS files -->
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
+    <script src="https://cdn.datatables.net/1.10.20/js/jquery.dataTables.min.js"></script>
+    <script src="/public/main.js"></script>
+    <script src="/public/jquery.dynatable.js"></script>
+</body>
+</html>
