@@ -10,7 +10,7 @@ end
 
 # GET /datatable
 function datatable(c::StockOverviewController)
-    db = SQLite.DB("DB.securities")
+    db = SQLite.DB("data/DB.securities")
     df = DBInterface.execute(db, "SELECT * FROM Securities") |> DataFrame
     return render(HTML, renderHTML(df))
 end # end init
@@ -18,6 +18,7 @@ end # end init
 
 routes() do
     plug(Plug.Static, at="/", from=normpath(@__DIR__, "public"))
+    plug(Plug.Static, at="/", from=normpath(@__DIR__, "."))
     get("/datatable", StockOverviewController, datatable)
 end
 

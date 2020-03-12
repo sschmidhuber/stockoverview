@@ -12,7 +12,7 @@ import Base.push!
 
 function update(concurrent_execution = true)
     @info "read \"Securities.csv\" file"
-    securities = CSV.read("Securities.csv")
+    securities = CSV.read("data/Securities.csv")
     @info "$(nrow(securities)) ISINs"
     df = DataFrame(
         security = String[],
@@ -31,7 +31,7 @@ function update(concurrent_execution = true)
         subsector = [],
         country = [],
         price = [],
-        currency = String[],
+        currency = [],
         url = String[],
     )
 
@@ -59,7 +59,7 @@ function update(concurrent_execution = true)
         end
     end
 
-    db = SQLite.DB("DB.securities")
+    db = SQLite.DB("data/DB.securities")
     SQLite.drop!(db, "Securities")
     df |> SQLite.load!(db, "Securities")
 end

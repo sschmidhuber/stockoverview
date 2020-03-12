@@ -66,16 +66,16 @@ function fetchprice(isin::String)::Tuple
     try
         res = HTTP.request("GET","https://component-api.wertpapiere.ing.de/api/v1/components/instrumentheader/$isin")
         pricedata = JSON.parse(res.body |> String, null=missing)
+
+        return (
+            pricedata["price"],
+            pricedata["changeAbsolute"],
+            pricedata["close"],
+            pricedata["currency"],
+        )
     catch e
         return (missing, missing, missing, missing)
     end
-
-    return (
-        pricedata["price"],
-        pricedata["changeAbsolute"],
-        pricedata["close"],
-        pricedata["currency"],
-    )
 end
 
 function fetchmasterdata(isin::String, language::String)::Tuple
