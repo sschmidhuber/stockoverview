@@ -1,8 +1,11 @@
+include("DataUpdate.jl")
+
 using Bukdu
 using HttpCommon
 using DataFrames
 using SQLite
 using StringBuilders
+using .DataUpdate
 
 struct StockOverviewController <: ApplicationController
     conn::Conn
@@ -15,6 +18,7 @@ function datatable(c::StockOverviewController)
     return render(HTML, renderHTML(df))
 end # end init
 
+#TODO add healthcheck endpoint; and update loadbalancer
 
 routes() do
     plug(Plug.Static, at="/", from=normpath(@__DIR__, "public"))
@@ -36,9 +40,9 @@ function renderHTML(df::DataFrame)::String
     df.dividendReturnRatioLast = map(x -> x === missing ? "" : round(x, digits=2), df.dividendReturnRatioLast)
     df.priceBookRatio = map(x -> x === missing ? "" : round(x, digits=2), df.priceBookRatio)
     df.priceEarningsRatio = map(x -> x === missing ? "" : round(x, digits=2), df.priceEarningsRatio)
-    df.price = map(x -> round(x, digits=2), df.price)
-    df.revenue = map(x -> x === missing ? "" : Int(round(x, digits=0)), df.revenue)
-    df.incomeNet = map(x -> x === missing ? "" : Int(round(x, digits=0)), df.incomeNet)
+    df.price = map(x -> x === missing ? "" : round(x, digits=2), df.price)
+    df.revenue = map(x -> x === missing ? "" : Int64(round(x, digits=0)), df.revenue)
+    df.incomeNet = map(x -> x === missing ? "" : Int64(round(x, digits=0)), df.incomeNet)
 
     sb = StringBuilder()
     append!(sb, """<table id="dataframe" class="table table-striped table-bordered" cellspacing="0">
@@ -73,3 +77,12 @@ function renderHTML(df::DataFrame)::String
 
     return String(sb)
 end # renderHTML
+
+Bukdu.start(8000, host = "0.0.0.0")
+
+if !isinteractive()
+    while true
+        update(false)
+        sleep(60 * 60 * 5) # 5h interval
+    end
+end

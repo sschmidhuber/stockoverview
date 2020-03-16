@@ -1,3 +1,5 @@
+module DataUpdate
+
 include("SecurityData.jl")
 
 using DataFrames
@@ -8,6 +10,9 @@ using LightXML
 using Logging
 using .SecurityData
 import Base.push!
+
+
+export update
 
 
 function update(concurrent_execution = true)
@@ -54,14 +59,16 @@ function update(concurrent_execution = true)
     else
         # fetch sequential
         foreach(securities.ISIN) do isin
+            @info "ISIN: $isin"
             security = fetchsecurity(isin, exchangerates)
             push!(df, security)
+            sleep(1) # to ensure little load on requested servers
         end
     end
 
     db = SQLite.DB("data/DB.securities")
     SQLite.drop!(db, "Securities")
-    df |> SQLite.load!(db, "Securities")
+    df |> SQLite.load!(db, "Securities");
 end
 
 function fetchexchangerates()::Dict{String,Float64}
@@ -104,7 +111,8 @@ function push!(df::DataFrame, security::Security)
             security.currency,
             "https://wertpapiere.ing.de/Investieren/Aktie/$(security.isin)"]);
         else
-            @warn "$(security.isin) : no hist data found, skip $(security.name)"
+            @info "$(security.isin) : no hist data found, skip $(security.name)"
         end
     end
 end
+end # module end

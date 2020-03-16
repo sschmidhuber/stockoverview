@@ -24,7 +24,7 @@ struct Security
     dividend_return_ratio_last::Union{Float64, Missing}
     dividend_return_ratio_avg3::Union{Float64, Missing}
     dividend_return_ratio_avg5::Union{Float64, Missing}
-    outstanding_shares::Union{Int, Missing}
+    outstanding_shares::Union{Int64, Missing}
     histkeydata::DataFrame
 end
 
@@ -67,12 +67,12 @@ function fetchprice(isin::String)::Tuple
         res = HTTP.request("GET","https://component-api.wertpapiere.ing.de/api/v1/components/instrumentheader/$isin")
         pricedata = JSON.parse(res.body |> String, null=missing)
 
-        return (
-            pricedata["price"],
-            pricedata["changeAbsolute"],
-            pricedata["close"],
-            pricedata["currency"],
-        )
+        price = haskey(pricedata, "price") ? pricedata["price"] : missing
+        change_abs = haskey(pricedata, "changeAbsolute") ? pricedata["changeAbsolute"] : missing
+        last_closing_price = haskey(pricedata, "close") ? pricedata["close"] : missing
+        currency = haskey(pricedata, "currency") ? pricedata["currency"] : missing
+
+        return (price, change_abs, last_closing_price, currency)
     catch e
         return (missing, missing, missing, missing)
     end
@@ -135,7 +135,7 @@ function fetchkeydata(isin::String, exchangerates::Dict{String,Float64}, years::
 end
 
 
-function fetchequitydata(isin::String)::Union{Int,Missing}
+function fetchequitydata(isin::String)::Union{Int64,Missing}
     equitydata = nothing
     try
         res = HTTP.request("GET", "https://api.boerse-frankfurt.de/data/equity_key_data?isin=$isin")
@@ -144,7 +144,7 @@ function fetchequitydata(isin::String)::Union{Int,Missing}
         return missing
     end
 
-    return equitydata["numberOfShares"]
+    return haskey(equitydata, "numberOfShares") ? equitydata["numberOfShares"] : missing
 end
 
 
@@ -185,5 +185,4 @@ function calculatevalues(price, outstanding_shares, histkeydata::DataFrame)
     end
 
 end
-
-end
+end # module end
