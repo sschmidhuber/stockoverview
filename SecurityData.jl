@@ -103,7 +103,7 @@ function fetchkeydata(isin::String, exchangerates::Dict{String,Float64}, years::
 
         # check latest dataset
         latest = data |> first
-        if latest["priceEarningsRatio"] === missing || latest["salesRevenue"] === missing || latest["incomeAfterTax"] === missing || latest["incomeNet"] === missing
+        if latest["salesRevenue"] === missing || latest["incomeAfterTax"] === missing || latest["incomeNet"] === missing
             popfirst!(data)
         end
 
