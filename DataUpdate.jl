@@ -59,7 +59,6 @@ function update(concurrent_execution = true)
     else
         # fetch sequential
         foreach(securities.ISIN) do isin
-            @info "ISIN: $isin"
             security = fetchsecurity(isin, exchangerates)
             push!(df, security)
             sleep(1) # to ensure little load on requested servers
@@ -68,7 +67,8 @@ function update(concurrent_execution = true)
 
     db = SQLite.DB("data/DB.securities")
     SQLite.drop!(db, "Securities")
-    df |> SQLite.load!(db, "Securities");
+    df |> SQLite.load!(db, "Securities")
+    @info "update completed"
 end
 
 function fetchexchangerates()::Dict{String,Float64}
@@ -85,11 +85,7 @@ end
 
 
 function push!(df::DataFrame, security::Security)
-    if security.name === missing
-        @info "$(security.isin) : no data found"
-    else
-        @info "$(security.isin) : $(security.name) => $(security.last_price) $(security.currency)"
-
+    if security.name !== missing
         if security.histkeydata |> nrow != 0
             push!(df, [
             security.name,
@@ -110,8 +106,6 @@ function push!(df::DataFrame, security::Security)
             security.last_price,
             security.currency,
             "https://wertpapiere.ing.de/Investieren/Aktie/$(security.isin)"]);
-        else
-            @info "$(security.isin) : no hist data found, skip $(security.name)"
         end
     end
 end
