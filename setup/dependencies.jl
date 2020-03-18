@@ -1,3 +1,5 @@
+#! /usr/bin/env julia
+
 using Pkg
 
 Pkg.add([
@@ -11,3 +13,5 @@ Pkg.add([
 "HttpCommon",
 "Bukdu"
 ])
+
+exit(0)
