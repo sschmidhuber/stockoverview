@@ -5,25 +5,38 @@ using HttpCommon
 using DataFrames
 using SQLite
 using StringBuilders
+using Dates
 using .DataUpdate
+
+const dbfile = "data/DB.securities"
+const update_interval = 60 * 60
 
 struct StockOverviewController <: ApplicationController
     conn::Conn
 end
 
-# GET /datatable
-function datatable(c::StockOverviewController)
-    db = SQLite.DB("data/DB.securities")
+# GET /securities
+function securities(c::StockOverviewController)
+    db = SQLite.DB(dbfile)
     df = DBInterface.execute(db, "SELECT * FROM Securities") |> DataFrame
     return render(HTML, renderHTML(df))
-end # end init
+end
 
-#TODO add healthcheck endpoint; and update loadbalancer
+
+# GET /securities/metadata
+function metadata(c::StockOverviewController)
+    db = SQLite.DB(dbfile)
+    rs = DBInterface.execute(db, "SELECT timestamp FROM Updates ORDER BY timestamp DESC LIMIT 1") |> DataFrame
+    lastupdate = rs.timestamp |> first
+    return render(JSON, Dict("interval" => update_interval, "lastupdate" => lastupdate))
+end
+
 
 routes() do
     plug(Plug.Static, at="/", from=normpath(@__DIR__, "public"))
     plug(Plug.Static, at="/", from=normpath(@__DIR__, "."))
-    get("/datatable", StockOverviewController, datatable)
+    get("/securities", StockOverviewController, securities)
+    get("/securities/metadata", StockOverviewController, metadata)
 end
 
 
@@ -82,7 +95,7 @@ Bukdu.start(8000, host = "0.0.0.0")
 
 if !isinteractive()
     while true
-        update(false)
-        sleep(60 * 60 * 5) # 5h interval
+        update(dbfile, false)
+        sleep(update_interval)
     end
 end

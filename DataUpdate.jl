@@ -8,14 +8,14 @@ using SQLite
 using HTTP
 using LightXML
 using Logging
+using Dates
 using .SecurityData
 import Base.push!
-
 
 export update
 
 
-function update(concurrent_execution = true)
+function update(db::String; concurrent_execution = true)
     @info "read \"Securities.csv\" file"
     securities = CSV.read("data/Securities.csv")
     @info "$(nrow(securities)) ISINs"
@@ -65,11 +65,14 @@ function update(concurrent_execution = true)
         end
     end
 
-    db = SQLite.DB("data/DB.securities")
+    db = SQLite.DB(db)
     SQLite.drop!(db, "Securities")
     df |> SQLite.load!(db, "Securities")
+    updates = DataFrame(timestamp = [Dates.format(now(), "yyyy-mm-ddTHH:MM:SS")])
+    updates |> SQLite.load!(db, "Updates")
     @info "update completed"
-end
+end # function update
+
 
 function fetchexchangerates()::Dict{String,Float64}
     exchangerates = Dict{String,Float64}()
