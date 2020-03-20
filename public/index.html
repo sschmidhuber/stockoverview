@@ -33,10 +33,13 @@
 
       <main>
         <div id="main-container" class="top-level">
-          <div id="stockdata" class="ml-4 mr-4 mt-4">
+          <div id="metadata" class="invisible ml-4 mr-4">
+            <span class="float-right mb-3">last data update <span id="lastupdate"></span> ago</span>
+          </div>
+          <div id="stockdata" class="ml-4 mr-4">
           </div>
           <div class="container">
-            <div id="spinner" class="d-flex justify-content-center mt-4">
+            <div id="spinner" class="d-flex justify-content-center mt-5">
               <div class="spinner-border" role="status">
                 <span class="sr-only">Loading...</span>
               </div>
