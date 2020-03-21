@@ -1,3 +1,5 @@
+#! /usr/bin/env julia
+
 include("DataUpdate.jl")
 
 using Bukdu
@@ -95,7 +97,7 @@ Bukdu.start(8000, host = "0.0.0.0")
 
 if !isinteractive()
     while true
-        update(dbfile, false)
+        update(dbfile, concurrent_execution = false)
         sleep(update_interval)
     end
 end
