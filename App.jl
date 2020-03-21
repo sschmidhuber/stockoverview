@@ -33,6 +33,7 @@ function metadata(c::StockOverviewController)
     return render(JSON, Dict("interval" => update_interval, "lastupdate" => lastupdate))
 end
 
+# TODO fix access to files outside public folder
 
 routes() do
     plug(Plug.Static, at="/", from=normpath(@__DIR__, "public"))

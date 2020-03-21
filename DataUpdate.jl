@@ -68,7 +68,7 @@ function update(db::String; concurrent_execution = true)
     db = SQLite.DB(db)
     SQLite.drop!(db, "Securities")
     df |> SQLite.load!(db, "Securities")
-    updates = DataFrame(timestamp = [Dates.format(now(), "yyyy-mm-ddTHH:MM:SS")])
+    updates = DataFrame(timestamp = [Dates.format(now(Dates.UTC), "yyyy-mm-ddTHH:MM:SS")])
     updates |> SQLite.load!(db, "Updates")
     @info "update completed"
 end # function update
