@@ -6,6 +6,7 @@ $( document ).ready(function() {
     $('#spinner').addClass('invisible')
     $('#stockdata').html(res)
     $('#dataframe').DataTable()
+    $('#metadata').removeClass('invisible')
   });
 
   // display time since last data update
@@ -27,8 +28,6 @@ $( document ).ready(function() {
     }
 
     displayTime()
-    $('#metadata').removeClass('invisible')
-
     setInterval(displayTime, 10000);
   });
 
