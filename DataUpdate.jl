@@ -27,17 +27,17 @@ function update(db::String; concurrent_execution = true)
         dividendReturnRatioLast = [],
         dividendReturnRatioAvg3 = [],
         dividendReturnRatioAvg5 = [],
-        dividendPerShare = [],
         revenue = [],
         incomeNet = [],
-        year = [],
+        country = [],
         industry = [],
         sector = [],
         subsector = [],
-        country = [],
         price = [],
-        currency = [],
+        dividendPerShare = [],
+        year = [],
         url = String[],
+        currency = [],
     )
 
     @info "get currency exchange rates"
@@ -101,17 +101,18 @@ function push!(df::DataFrame, security::Security)
             security.dividend_return_ratio_last,
             security.dividend_return_ratio_avg3,
             security.dividend_return_ratio_avg5,
-            security.histkeydata.dividendPerShare |> first,
             security.histkeydata.revenue |> first,
             security.histkeydata.incomeNet |> first,
-            security.histkeydata.year |> first,
+            security.country,
             security.industry,
             security.sector,
             security.subsector,
-            security.country,
             security.last_price,
-            security.currency,
-            "https://wertpapiere.ing.de/Investieren/Aktie/$(security.isin)"]);
+            security.histkeydata.dividendPerShare |> first,
+            security.histkeydata.year |> first,
+            "https://wertpapiere.ing.de/Investieren/Aktie/$(security.isin)",
+            security.currency
+            ])
         end
     end
 end

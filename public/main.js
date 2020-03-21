@@ -2,10 +2,19 @@ $( document ).ready(function() {
 
   // load initial securities table
   $.get('/securities', function(res){
-    //$('#spinner').css('visibility','hidden');
+    columns = []
+    res.cols.forEach((title, i) => {
+      columns.push({ title: title })
+    });
+
+    $('#dataframe').DataTable( {
+        data: res.rows,
+        columns: columns
+    } );
+    //$('#stockdata').html(res)
+    //$('#dataframe').DataTable()
     $('#spinner').addClass('invisible')
-    $('#stockdata').html(res)
-    $('#dataframe').DataTable()
+    $('#dataframe').removeClass('invisible')
     $('#metadata').removeClass('invisible')
   });
 
