@@ -66,7 +66,10 @@ function update(db::String; concurrent_execution = true)
     end
 
     db = SQLite.DB(db)
-    SQLite.drop!(db, "Securities")
+    tables = SQLite.tables(db)
+    if !(isempty(tables)) && findfirst(x -> x == "Securities", tables.name) != nothing
+        DBInterface.execute(db, "DELETE FROM Securities")
+    end
     df |> SQLite.load!(db, "Securities")
     updates = DataFrame(timestamp = [Dates.format(now(Dates.UTC), "yyyy-mm-ddTHH:MM:SS") * "Z"])
     updates |> SQLite.load!(db, "Updates")

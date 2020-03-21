@@ -10,7 +10,7 @@ using StringBuilders
 using Dates
 using .DataUpdate
 
-const dbfile = "data/DB.securities"
+const dbfile = "data/DB.sqlite"
 const update_interval = 60 * 60
 
 struct StockOverviewController <: ApplicationController
