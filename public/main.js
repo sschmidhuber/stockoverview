@@ -16,8 +16,8 @@ $( document ).ready(function() {
         dom: '<"toolbar d-inline">ftlp'
     } );
 
-    // format currency columns
-    columns = [2,3,4,5,6,7,8,13,14]
+    // align number columns
+    columns = [2,3,4,5,6,7,8,13,14,15]
     columns.forEach((col, i) => {
       $(dataframe.column(col).nodes()).attr("style", "text-align: right");
     });
