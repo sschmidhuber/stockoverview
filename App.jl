@@ -55,8 +55,8 @@ function preparedata(df::DataFrame)
     df.priceBookRatio = map(x -> x === missing ? "" : Printf.@sprintf("%.2f", round(x, digits=2)), df.priceBookRatio)
     df.priceEarningsRatio = map(x -> x === missing ? "" : Printf.@sprintf("%.2f", round(x, digits=2)), df.priceEarningsRatio)
     df.price = map(x -> x === missing ? "" : Printf.@sprintf("%.2f", round(x, digits=2)), df.price)
-    df.revenue = map(x -> x === missing ? "" : format(Int64(round(x, digits=0)), width=15, commas=true), df.revenue)
-    df.incomeNet = map(x -> x === missing ? "" : format(Int64(round(x, digits=0)), width=15, commas=true), df.incomeNet)
+    df.revenue = map(x -> x === missing ? "" : format(Int64(round(x, digits=0)), commas=true), df.revenue)
+    df.incomeNet = map(x -> x === missing ? "" : format(Int64(round(x, digits=0)), commas=true), df.incomeNet)
 
     # transform ISINs to hyperlinks
     df.isin = map(row -> """<a href="$(row.url)" target="_blank">$(row.isin)</a>""", eachrow(df))
