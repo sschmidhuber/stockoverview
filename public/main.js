@@ -16,6 +16,12 @@ $( document ).ready(function() {
         dom: '<"toolbar d-inline">ftlp'
     } );
 
+    // format currency columns
+    columns = [2,3,4,5,6,7,8,13,14]
+    columns.forEach((col, i) => {
+      $(dataframe.column(col).nodes()).attr("style", "text-align: right");
+    });
+
     // create filter columns
     res.cols.forEach((title,i) => {
       $('#filter-options').append('<div class="form-check ml-2 mr-2"><input id="toggle-col-' + i + '" type="checkbox" class="form-check-input toggle-vis" data-column="' + i + '" checked><label for="toggle-col-' + i + '" class="form-check-label">' + title + '</label></div>')

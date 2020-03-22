@@ -7,6 +7,8 @@ using HttpCommon
 using DataFrames
 using SQLite
 using StringBuilders
+using Formatting
+using Printf
 using Dates
 using .DataUpdate
 
@@ -48,13 +50,13 @@ end
 
 function preparedata(df::DataFrame)
     replace!(df.country, "JE" => "Jersey", "US" => "United States", "IL" => "Israel", "PA" => "Panama", "BM" => "Bermudas", "CW" => "Curaçao", "CN" => "China", "JP" => "Japan", "LI" => "Liechtenstein", "GG" => "Guernsey")
-    df.dividendPerShare = map(x -> x === missing ? "" : round(x, digits=2), df.dividendPerShare)
-    df.dividendReturnRatioLast = map(x -> x === missing ? "" : round(x, digits=2), df.dividendReturnRatioLast)
-    df.priceBookRatio = map(x -> x === missing ? "" : round(x, digits=2), df.priceBookRatio)
-    df.priceEarningsRatio = map(x -> x === missing ? "" : round(x, digits=2), df.priceEarningsRatio)
-    df.price = map(x -> x === missing ? "" : round(x, digits=2), df.price)
-    df.revenue = map(x -> x === missing ? "" : Int64(round(x, digits=0)), df.revenue)
-    df.incomeNet = map(x -> x === missing ? "" : Int64(round(x, digits=0)), df.incomeNet)
+    df.dividendPerShare = map(x -> x === missing ? "" : Printf.@sprintf("%.2f", round(x, digits=2)), df.dividendPerShare)
+    df.dividendReturnRatioLast = map(x -> x === missing ? "" : Printf.@sprintf("%.2f", round(x, digits=2)), df.dividendReturnRatioLast)
+    df.priceBookRatio = map(x -> x === missing ? "" : Printf.@sprintf("%.2f", round(x, digits=2)), df.priceBookRatio)
+    df.priceEarningsRatio = map(x -> x === missing ? "" : Printf.@sprintf("%.2f", round(x, digits=2)), df.priceEarningsRatio)
+    df.price = map(x -> x === missing ? "" : Printf.@sprintf("%.2f", round(x, digits=2)), df.price)
+    df.revenue = map(x -> x === missing ? "" : format(Int64(round(x, digits=0)), width=15, commas=true), df.revenue)
+    df.incomeNet = map(x -> x === missing ? "" : format(Int64(round(x, digits=0)), width=15, commas=true), df.incomeNet)
 
     # transform ISINs to hyperlinks
     df.isin = map(row -> """<a href="$(row.url)" target="_blank">$(row.isin)</a>""", eachrow(df))

@@ -9,6 +9,7 @@ Pkg.add([
 "CSV",
 "SQLite",
 "StringBuilders",
+"Formatting",
 "HTTP",
 "HttpCommon",
 "Bukdu"
