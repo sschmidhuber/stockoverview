@@ -34,11 +34,19 @@
 
       <main>
         <div id="main-container" class="top-level">
-          <!--div id="metadata" class="invisible ml-4 mr-4">
-            <span class="float-right mb-3">last data update <span id="lastupdate"></span> ago</span>
-          </div-->
-          <div id="stockdata" class="ml-4 mr-4">
-            <table id="dataframe" class="invisible"></table>
+          <div id="filter" class="invisible ml-4 mr-4">
+            <p>
+              <a class="btn btn-secondary btn-sm" role="button" data-toggle="collapse" href="#filter-options" aria-expanded="false" aria-controls="filter">Columns</a>
+            </p>
+            <div id="filter-options" class="collapse form-inline">
+              <!--div class="form-check">
+                <input id="toggle-col-0" type="checkbox" class="form-check-input toggle-vis" data-column=0 checked>
+                <label for="toggle-col-0" class="form-check-label">Name</label>
+              </div-->
+            </div>
+          </div>
+          <div id="stockdata" class="mt-2 ml-4 mr-4">
+            <table id="dataframe" class="invisible" style="width:100%"></table>
           </div>
           <div class="container">
             <div id="spinner" class="d-flex justify-content-center mt-5">

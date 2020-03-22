@@ -2,21 +2,47 @@ $( document ).ready(function() {
 
   // load initial securities table
   $.get('/securities', function(res){
+
+    // datatable columns
     columns = []
     res.cols.forEach((title, i) => {
       columns.push({ title: title })
     });
 
-    $('#dataframe').DataTable( {
+    // init data frame
+    var dataframe = $('#dataframe').DataTable( {
         data: res.rows,
         columns: columns,
         dom: '<"toolbar d-inline">ftlp'
     } );
+
+    // create filter columns
+    res.cols.forEach((title,i) => {
+      $('#filter-options').append('<div class="form-check ml-2 mr-2"><input id="toggle-col-' + i + '" type="checkbox" class="form-check-input toggle-vis" data-column="' + i + '" checked><label for="toggle-col-' + i + '" class="form-check-label">' + title + '</label></div>')
+    });
+
+    // filter logic
+    $('.toggle-vis').on( 'click', function (e) {
+      // Get the column API object
+      let column = dataframe.column( $(this).attr('data-column') );
+      // Toggle the visibility
+      column.visible( ! column.visible() );
+    } );
+
+    // set default column selection
+    unselectCols = [5,6,11,12,14]
+    unselectCols.forEach((col,i) => {
+      let column = dataframe.column(col)
+      column.visible( ! column.visible() )
+      $('#toggle-col-' + col).removeAttr("checked")
+    });
+
+    // change visability
     $('#spinner').addClass('invisible')
     $(':input').addClass('form-control')
     $('#dataframe').addClass('table table-striped table-bordered')
     $('#dataframe').removeClass('invisible')
-    $('#metadata').removeClass('invisible')
+    $('#filter').removeClass('invisible')
   });
 
   // display time since last data update
