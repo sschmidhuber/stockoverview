@@ -9,11 +9,12 @@ $( document ).ready(function() {
 
     $('#dataframe').DataTable( {
         data: res.rows,
-        columns: columns
+        columns: columns,
+        dom: '<"toolbar d-inline">ftlp'
     } );
-    //$('#stockdata').html(res)
-    //$('#dataframe').DataTable()
     $('#spinner').addClass('invisible')
+    $(':input').addClass('form-control')
+    $('#dataframe').addClass('table table-striped table-bordered')
     $('#dataframe').removeClass('invisible')
     $('#metadata').removeClass('invisible')
   });
@@ -33,7 +34,7 @@ $( document ).ready(function() {
       } else {
         time_string = hours + " h " + minutes + " min"
       }
-      $('#lastupdate').text(time_string)
+      $('div.toolbar').html("last data update: <code>" + time_string + "</code>")
     }
 
     displayTime()
