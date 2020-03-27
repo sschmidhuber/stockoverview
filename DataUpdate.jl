@@ -65,6 +65,9 @@ function update(db::String; concurrent_execution = true)
         end
     end
 
+    # map and transform values
+    replace!(df.country, "JE" => "Jersey", "US" => "United States", "IL" => "Israel", "PA" => "Panama", "BM" => "Bermudas", "CW" => "Curaçao", "CN" => "China", "JP" => "Japan", "LI" => "Liechtenstein", "GG" => "Guernsey")
+
     db = SQLite.DB(db)
     tables = SQLite.tables(db)
     if !(isempty(tables)) && findfirst(x -> x == "Securities", tables.name) != nothing
