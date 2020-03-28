@@ -12,10 +12,10 @@ using Dates
 using .SecurityData
 import Base.push!
 
-export update
+export update_db
 
 
-function update(db::String; concurrent_execution = true)
+function update_db(db::String; concurrent_execution = true)
     @info "read \"Securities.csv\" file"
     securities = CSV.read("data/Securities.csv")
     @info "$(nrow(securities)) ISINs"
@@ -76,6 +76,7 @@ function update(db::String; concurrent_execution = true)
     df |> SQLite.load!(db, "Securities")
     updates = DataFrame(timestamp = [Dates.format(now(Dates.UTC), "yyyy-mm-ddTHH:MM:SS") * "Z"])
     updates |> SQLite.load!(db, "Updates")
+    DBInterface.close!(db)
     @info "update completed"
 end # function update
 
