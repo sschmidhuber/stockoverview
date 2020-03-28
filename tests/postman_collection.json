@@ -6,7 +6,7 @@
 	},
 	"item": [
 		{
-			"name": "get initial securities table",
+			"name": "securities",
 			"request": {
 				"method": "GET",
 				"header": [],
@@ -24,13 +24,38 @@
 			"response": []
 		},
 		{
-			"name": "valid filter 1",
+			"name": "securities.filrered1",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{server}}/securities?filter=7d4d5be6-7136-11ea-3661-89b2a05062d7",
+					"host": [
+						"{{server}}"
+					],
+					"path": [
+						"securities"
+					],
+					"query": [
+						{
+							"key": "filter",
+							"value": "7d4d5be6-7136-11ea-3661-89b2a05062d7",
+							"description": "filter id"
+						}
+					]
+				},
+				"description": "load all securities in a HTML table"
+			},
+			"response": []
+		},
+		{
+			"name": "create.filter1",
 			"request": {
 				"method": "POST",
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\n\t\"revenue\": [0, 100000000000],\n\t\"incomeNet\": [-1000000, 100000000000],\n\t\"country\": [\"Austria\", \"Germany\", \"France\"],\n\t\"p-per\": 0.35,\n\t\"p-pbr\": 0.5,\n\t\"p-drrl\": 0.4,\n\t\"p-drr3\": 0.5,\n\t\"p-drr5\": 0.7\n}",
+					"raw": "{\n\t\"revenue\": [0, 100000000000],\n\t\"incomeNet\": [-1000000, 100000000000],\n\t\"per\": [0, 100],\n\t\"country\": [\"Austria\", \"Germany\", \"France\"],\n\t\"p-per\": 0.35,\n\t\"p-pbr\": 0.5,\n\t\"p-drrl\": 0.4,\n\t\"p-drr3\": 0.5,\n\t\"p-drr5\": 0.7\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -50,7 +75,7 @@
 			"response": []
 		},
 		{
-			"name": "valid filter 2",
+			"name": "create.filter2",
 			"request": {
 				"method": "POST",
 				"header": [],
@@ -76,7 +101,7 @@
 			"response": []
 		},
 		{
-			"name": "invalid filter 1",
+			"name": "create.filter.error1",
 			"request": {
 				"method": "POST",
 				"header": [],
@@ -102,7 +127,7 @@
 			"response": []
 		},
 		{
-			"name": "invalid filter 2",
+			"name": "create.filter.error2",
 			"request": {
 				"method": "POST",
 				"header": [],
@@ -128,7 +153,7 @@
 			"response": []
 		},
 		{
-			"name": "invalid filter 3",
+			"name": "create.filter.error3",
 			"request": {
 				"method": "POST",
 				"header": [],
@@ -154,7 +179,7 @@
 			"response": []
 		},
 		{
-			"name": "invalid filter 4",
+			"name": "create.filter.error4",
 			"request": {
 				"method": "POST",
 				"header": [],
