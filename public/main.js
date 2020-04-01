@@ -1,5 +1,10 @@
 $( document ).ready(function() {
 
+  // general ajax settings
+  $.ajaxSetup({
+    contentType: "application/json"
+  })
+
   // load initial securities table
   $.get('/securities', function(res){
 
@@ -26,7 +31,84 @@ $( document ).ready(function() {
     $('.toggle-vis').on( 'click', function (e) {
       let column = dataframe.column( $(this).attr('data-column') );
       column.visible( ! column.visible() );
-    } );
+    });
+
+
+    let filterTimeout = null;
+
+    // build filter JSON and trigger request
+    function createFilter() {
+      clearTimeout(filterTimeout);
+      filterTimeout = setTimeout(function() {        
+        let filter = {}
+
+        let countries = $('#country-filter').val()
+        if (countries.length > 0) {
+          filter.country = countries
+        }
+
+        let positivePer = $('#positive-per').prop('checked')
+        if (positivePer) {
+          filter.priceEarningsRatio = [0,res.values.priceEarningsRatio[1]]
+        }
+
+        let positivePbr = $('#positive-pbr').prop('checked')
+        if (positivePbr) {
+          filter.priceBookRatio = [0,res.values.priceBookRatio[1]]
+        }
+
+        let minRevenue = $( "#slider-revenue" ).slider( "values", 0 )
+        let maxRevenue = $( "#slider-revenue" ).slider( "values", 1 )
+        if (minRevenue > res.values.revenue[0] || maxRevenue < res.values.revenue[1]) {
+          filter.revenue = [minRevenue, maxRevenue]
+        }
+
+        let minIncomeNet = $( "#slider-income-net" ).slider( "values", 0 )
+        let maxIncomeNet = $( "#slider-income-net" ).slider( "values", 1 )
+        if (minIncomeNet > res.values.incomeNet[0] || maxIncomeNet < res.values.incomeNet[1]) {
+          filter.incomeNet = [minIncomeNet, maxIncomeNet]
+        }
+        
+        let pPer = $( "#slider-per" ).slider( "value" )
+        if (pPer != 100) {
+          filter.pPer = Math.abs(pPer)
+        }
+        
+        let pPbr = $( "#slider-pbr" ).slider( "value" )
+        if (pPbr != 100) {
+          filter.pPbr = Math.abs(pPbr)
+        }
+        
+        let pDrrl = $( "#slider-drrl" ).slider( "value" )
+        if (pDrrl != -100) {
+          filter.pDrrl = Math.abs(pDrrl)
+        }
+        
+        let pDrr3 = $( "#slider-drr3" ).slider( "value" )
+        if (pDrr3 != -100) {
+          filter.pDrr3 = Math.abs(pDrr3)
+        }
+        
+        let pDrr5 = $( "#slider-drr5" ).slider( "value" )
+        if (pDrr5 != -100) {
+          filter.pDrr5 = Math.abs(pDrr5)
+        }
+        
+        if (Object.keys(filter).length != 0) {
+          console.log("send filter request");
+          
+          $.post("/filters", JSON.stringify(filter), function (res) {
+            console.log(res.filterId);
+          });
+        }
+      }, 2000)
+    };
+
+    function getSecurities(id) {
+      console.log("get securities and apply filter, if there is any");
+      updateDataFrame(null);     
+    }
+
 
     // price-earnings ratio
     $( function() {
@@ -37,10 +119,12 @@ $( document ).ready(function() {
         max: 100,
         slide: function( event, ui ) {
           $( "#p-per" ).text( ui.value + "%" );
+          createFilter();
         }
       });
       $( "#p-per" ).text( $( "#slider-per" ).slider( "value" ) + "%" );
     } );
+    $('#positive-per').on('click', createFilter);
 
     // price-book ratio
     $( function() {
@@ -51,10 +135,12 @@ $( document ).ready(function() {
         max: 100,
         slide: function( event, ui ) {
           $( "#p-pbr" ).text( ui.value + "%" );
+          createFilter();
         }
       });
       $( "#p-pbr" ).text( $( "#slider-pbr" ).slider( "value" ) + "%" );
     } );
+    $('#positive-pbr').on('click', createFilter);
 
     // didivend-return ratio (last)
     $( function() {
@@ -65,6 +151,7 @@ $( document ).ready(function() {
         max: 1,
         slide: function( event, ui ) {
           $( "#p-drrl" ).text( Math.abs(ui.value) + "%" );
+          createFilter();
         }
       });
       $( "#p-drrl" ).text( Math.abs($( "#slider-drrl" ).slider( "value" )) + "%" );
@@ -79,6 +166,7 @@ $( document ).ready(function() {
         max: 1,
         slide: function( event, ui ) {
           $( "#p-drr3" ).text( Math.abs(ui.value) + "%" );
+          createFilter();
         }
       });
       $( "#p-drr3" ).text( Math.abs($( "#slider-drr3" ).slider( "value" )) + "%" );
@@ -93,6 +181,7 @@ $( document ).ready(function() {
         max: 1,
         slide: function( event, ui ) {
           $( "#p-drr5" ).text( Math.abs(ui.value) + "%" );
+          createFilter();
         }
       });
       $( "#p-drr5" ).text( Math.abs($( "#slider-drr5" ).slider( "value" )) + "%" );
@@ -109,15 +198,33 @@ $( document ).ready(function() {
         slide: function( event, ui ) {
           $( "#revenue-from" ).text( (ui.values[0]).toLocaleString("en") );
           $( "#revenue-to" ).text( (ui.values[1]).toLocaleString("en") );
+          if (ui.values[0] < 0 && $('#positive-revenue').prop('checked')) {
+            $('#positive-revenue').prop('checked', false)
+          }
+          createFilter();
         }
       });
       $( "#revenue-from" ).text( $( "#slider-revenue" ).slider( "values", 0 ).toLocaleString("en") );
       $( "#revenue-to" ).text( $( "#slider-revenue" ).slider( "values", 1 ).toLocaleString("en") );
     } );
+    $('#positive-revenue').on('click', function() {
+      checked = $(this).prop('checked')
+      if (checked) {
+        if ($( "#slider-revenue" ).slider("values", 0) < 0 ) {
+          $( "#revenue-from" ).text( "0" )
+          $( "#slider-revenue" ).slider("values", 0, 0)
+        }
+        if ($( "#slider-revenue" ).slider("values", 1) < 0 ) {
+          $( "#revenue-to" ).text( "0" )
+          $( "#slider-revenue" ).slider("values", 1, 0)
+        }
+      }      
+      createFilter
+    });
 
     // net income
     $( function() {
-      $( "#slider-net-income" ).slider({
+      $( "#slider-income-net" ).slider({
         range: true,
         min: Math.floor(res.values.incomeNet[0] / 1000000000) * 1000000000,
         max: Math.ceil(res.values.incomeNet[1] / 1000000000) * 1000000000,
@@ -126,11 +233,30 @@ $( document ).ready(function() {
         slide: function( event, ui ) {
           $( "#net-income-from" ).text( (ui.values[0]).toLocaleString("en") );
           $( "#net-income-to" ).text( (ui.values[1]).toLocaleString("en") );
+          if (ui.values[0] < 0 && $('#positive-income-net').prop('checked')) {
+            $('#positive-income-net').prop('checked', false)
+          }
+          createFilter();
         }
       });
-      $( "#net-income-from" ).text( $( "#slider-net-income" ).slider( "values", 0 ).toLocaleString("en") );
-      $( "#net-income-to" ).text( $( "#slider-net-income" ).slider( "values", 1 ).toLocaleString("en") );
+      $( "#net-income-from" ).text( $( "#slider-income-net" ).slider( "values", 0 ).toLocaleString("en") );
+      $( "#net-income-to" ).text( $( "#slider-income-net" ).slider( "values", 1 ).toLocaleString("en") );
     } );
+    $('#positive-income-net').on('click', function() {
+      checked = $(this).prop('checked')
+      if (checked) {
+        
+        if ($( "#slider-income-net" ).slider("values", 0) < 0 ) {
+          $( "#income-net-from" ).text( "0" )
+          $( "#slider-income-net" ).slider("values", 0, 0)
+        }
+        if ($( "#slider-income-net" ).slider("values", 1) < 0 ) {
+          $( "#income-net-to" ).text( "0" )
+          $( "#slider-income-net" ).slider("values", 1, 0)
+        }
+      }      
+      createFilter
+    });
 
     // country filter
     res.values.country.forEach((country, i) => {
@@ -138,6 +264,8 @@ $( document ).ready(function() {
     });
     $('#country-filter').selectpicker({ size: "10" });
     $('#country-filter').selectpicker('refresh');
+    $('#country-filter').on('change', createFilter);
+
 
     // set default column selection
     unselectCols = [5,6,11,12,14]
@@ -185,5 +313,17 @@ $( document ).ready(function() {
     $(this).addClass('text-white')
     target = $(this).attr('target')
     $(target).show()
-  })
+  });
+
+  // update data
+  function updateDataFrame(filter = null) {
+    if (filter === null) {
+      $.get('/securities', function (res) {
+        $('#dataframe').DataTable({
+          data: res.rows
+        });
+      });
+    }
+  }
+
 });
