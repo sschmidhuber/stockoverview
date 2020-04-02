@@ -3,7 +3,6 @@
 include("DataUpdate.jl")
 
 using Bukdu
-using HttpCommon
 using DataFrames
 using SQLite
 using JSON
@@ -66,17 +65,41 @@ end
 # POST /filters
 function post_filters(c::AppController)
     dict = Dict()
+    @show c.conn.request
     foreach(x -> push!(dict, x), c.params)
     filter = SecurityFilter(dict)
     if !isvalid(filter)
+        @warn "invalid filter definition"
+        @show filter.filter
         c.conn.request.response.status = 400
         return render(JSON, "error" => "invalid filter definition")
     end
-    db = SQLite.DB(dbfile)
-    df = DataFrame(id = [filter.id |> string], date = [today() |> string], filter = [filter.filter |> json])
-    df |> SQLite.load!(db, "SecurityFilters")
-    DBInterface.close!(db)
-    render(JSON, "filter-id" => filter.id |> string)
+
+    db_access_failed = true
+    retry_count = 0
+    db = nothing
+    while db_access_failed && retry_count < 10
+        try
+            db = SQLite.DB(dbfile)
+            df = DataFrame(id = [filter.id |> string], date = [today() |> string], filter = [filter.filter |> json])
+            df |> SQLite.load!(db, "SecurityFilters")
+
+            db_access_failed = false
+        catch e
+            @warn "DB access failed"
+            DBInterface.close!(db)
+            retry_count += 1
+            sleep(1)
+        end
+    end
+    db != nothing && DBInterface.close!(db)
+
+    if db_access_failed
+        c.conn.request.response.status = 400
+        return render(JSON, "error" => "DB access failed")
+    else
+        render(JSON, "filterId" => filter.id |> string)
+    end
 end
 
 # TODO fix access to files outside public folder
@@ -134,7 +157,7 @@ function apply!(securities::DataFrame, securityfilter::SecurityFilter)
     dfcopy = copy(securities)   # this is used to calculate the quantile of different values
 
     # get lower than quantile
-    mapping_percentiles = Dict("p-per" => :priceEarningsRatio, "p-pbr" => :priceBookRatio)
+    mapping_percentiles = Dict("pPer" => :priceEarningsRatio, "pPbr" => :priceBookRatio)
     for (k,v) in mapping_percentiles
         if haskey(filter, k)
             threshold = quantile(dfcopy[!,v] |> skipmissing, filter[k])
@@ -143,7 +166,7 @@ function apply!(securities::DataFrame, securityfilter::SecurityFilter)
     end
 
     # get higher than quantile
-    mapping_percentiles = Dict("p-drrl" => :dividendReturnRatioLast, "p-drr3" => :dividendReturnRatioAvg3, "p-drr5" => :dividendReturnRatioAvg5)
+    mapping_percentiles = Dict("pDrrl" => :dividendReturnRatioLast, "pDrr3" => :dividendReturnRatioAvg3, "pDrr5" => :dividendReturnRatioAvg5)
     for (k,v) in mapping_percentiles
         if haskey(filter, k)
             threshold = quantile(dfcopy[!,v] |> skipmissing, filter[k])

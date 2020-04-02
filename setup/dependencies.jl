@@ -12,7 +12,6 @@ Pkg.add([
 "UUIDs",
 "Formatting",
 "HTTP",
-"HttpCommon",
 "Bukdu"
 ])
 
