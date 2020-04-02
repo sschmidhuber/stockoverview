@@ -65,7 +65,6 @@ end
 # POST /filters
 function post_filters(c::AppController)
     dict = Dict()
-    @show c.conn.request
     foreach(x -> push!(dict, x), c.params)
     filter = SecurityFilter(dict)
     if !isvalid(filter)
@@ -149,7 +148,7 @@ function apply!(securities::DataFrame, securityfilter::SecurityFilter)
     mapping_intervals = Dict("revenue" => :revenue, "incomeNet" => :incomeNet, "priceEarningsRatio" => :priceEarningsRatio, "priceBookRatio" => :priceBookRatio)
     for (k,v) in mapping_intervals
         if haskey(filter, k)
-            filter!(row -> row[v] >= filter[k][1] && row[v] <= filter[k][2], securities)
+            filter!(row -> row[v] !== missing ? row[v] >= filter[k][1] && row[v] <= filter[k][2] : false, securities)
         end
     end
 
@@ -195,7 +194,7 @@ function isvalid(securityfilter::SecurityFilter)::Bool
         return false
     end
 
-    percentiles = ["p-per", "p-pbr", "p-drrl", "p-drr3", "p-drr5"]
+    percentiles = ["pPer", "pPbr", "pDrrl", "pDrr3", "pDrr5"]
     percentile_check = map(percentiles) do p
         if haskey(dict, p) && !ispercentile(dict[p])
             return false

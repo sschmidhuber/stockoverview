@@ -71,44 +71,40 @@ $( document ).ready(function() {
         
         let pPer = $( "#slider-per" ).slider( "value" )
         if (pPer != 100) {
-          filter.pPer = Math.abs(pPer)
+          filter.pPer = Math.abs(pPer) / 100
         }
         
         let pPbr = $( "#slider-pbr" ).slider( "value" )
         if (pPbr != 100) {
-          filter.pPbr = Math.abs(pPbr)
+          filter.pPbr = Math.abs(pPbr) / 100
         }
         
         let pDrrl = $( "#slider-drrl" ).slider( "value" )
         if (pDrrl != -100) {
-          filter.pDrrl = Math.abs(pDrrl)
+          filter.pDrrl = Math.abs(pDrrl) / 100
         }
         
         let pDrr3 = $( "#slider-drr3" ).slider( "value" )
         if (pDrr3 != -100) {
-          filter.pDrr3 = Math.abs(pDrr3)
+          filter.pDrr3 = Math.abs(pDrr3) / 100
         }
         
         let pDrr5 = $( "#slider-drr5" ).slider( "value" )
         if (pDrr5 != -100) {
-          filter.pDrr5 = Math.abs(pDrr5)
+          filter.pDrr5 = Math.abs(pDrr5) / 100
         }
         
-        if (Object.keys(filter).length != 0) {
-          console.log("send filter request");
-          
+        if (Object.keys(filter).length != 0) {          
           $.post("/filters", JSON.stringify(filter), function (res) {
+            
+            // TODO: store filter ID in local storage
+            
             console.log(res.filterId);
+            updateDataFrame(res.filterId);
           });
         }
       }, 2000)
     };
-
-    function getSecurities(id) {
-      console.log("get securities and apply filter, if there is any");
-      updateDataFrame(null);     
-    }
-
 
     // price-earnings ratio
     $( function() {
@@ -219,7 +215,7 @@ $( document ).ready(function() {
           $( "#slider-revenue" ).slider("values", 1, 0)
         }
       }      
-      createFilter
+      createFilter();
     });
 
     // net income
@@ -255,7 +251,7 @@ $( document ).ready(function() {
           $( "#slider-income-net" ).slider("values", 1, 0)
         }
       }      
-      createFilter
+      createFilter();
     });
 
     // country filter
@@ -322,6 +318,12 @@ $( document ).ready(function() {
         $('#dataframe').DataTable({
           data: res.rows
         });
+      });
+    } else {
+      $.get('/securities', { "filter": filter }, function (res) {
+        dataFrame = $('#dataframe').DataTable();
+        dataFrame.clear();
+        dataFrame.rows.add(res.rows).draw()
       });
     }
   }
