@@ -4,7 +4,8 @@ include("SecurityData.jl")
 
 using DataFrames
 using CSV
-using SQLite
+using Redis
+using JSON
 using HTTP
 using LightXML
 using Logging
@@ -15,7 +16,7 @@ import Base.push!
 export update_db
 
 
-function update_db(db::String; concurrent_execution = true)
+function update_db(concurrent_execution = true)
     @info "read \"Securities.csv\" file"
     securities = CSV.read("data/Securities.csv")
     @info "$(nrow(securities)) ISINs"
@@ -68,15 +69,10 @@ function update_db(db::String; concurrent_execution = true)
     # map and transform values
     replace!(df.country, "JE" => "Jersey", "US" => "United States", "IL" => "Israel", "PA" => "Panama", "BM" => "Bermudas", "CW" => "Curaçao", "CN" => "China", "JP" => "Japan", "LI" => "Liechtenstein", "GG" => "Guernsey", "LR" => "Liberia")
 
-    db = SQLite.DB(db)
-    tables = SQLite.tables(db)
-    if !(isempty(tables)) && findfirst(x -> x == "Securities", tables.name) != nothing
-        DBInterface.execute(db, "DELETE FROM Securities")
-    end
-    df |> SQLite.load!(db, "Securities")
-    updates = DataFrame(timestamp = [Dates.format(now(Dates.UTC), "yyyy-mm-ddTHH:MM:SS") * "Z"])
-    updates |> SQLite.load!(db, "Updates")
-    DBInterface.close!(db)
+    redis = RedisConnection()
+    set(redis, "dataframe:securities", df |> json)
+    set(redis, "timestamp:last.data.update", Dates.format(now(Dates.UTC), "yyyy-mm-ddTHH:MM:SS") * "Z")
+    disconnect(redis)
     @info "update completed"
 end # function update
 

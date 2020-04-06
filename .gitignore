@@ -26,3 +26,4 @@ Manifest.toml
 # data files
 data/
 *.log
+*.rdb

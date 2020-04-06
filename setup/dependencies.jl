@@ -7,12 +7,13 @@ Pkg.add([
 "JSON",
 "LightXML",
 "CSV",
-"SQLite",
 "StringBuilders",
 "UUIDs",
 "Formatting",
 "HTTP",
 "Bukdu"
 ])
+
+Pkg.add(PackageSpec(url="https://github.com/JuliaDatabases/Redis.jl"))
 
 exit(0)

@@ -4,7 +4,7 @@ include("DataUpdate.jl")
 
 using Bukdu
 using DataFrames
-using SQLite
+using Redis
 using JSON
 using StringBuilders
 using Formatting
@@ -14,7 +14,6 @@ using Dates
 using UUIDs
 using .DataUpdate
 
-const dbfile = "data/DB.sqlite"
 const update_interval = 60 * 60
 
 struct AppController <: ApplicationController
@@ -23,41 +22,45 @@ end
 
 struct SecurityFilter
     id::UUID
-    filter::Dict
+    options::Dict
 end
 
 SecurityFilter(dict::Dict) = SecurityFilter(uuid1(),dict)
 
 # GET /securities
 function get_securities(c::AppController)
-    filter_id = haskey(c.params, "filter") ? filter_id = c.params["filter"] : nothing
-    db = SQLite.DB(dbfile)
-    securities = DBInterface.execute(db, "SELECT * FROM Securities") |> DataFrame
-    updates = DBInterface.execute(db, "SELECT timestamp FROM Updates ORDER BY timestamp DESC LIMIT 1") |> DataFrame
-    if filter_id != nothing
-        rs = DBInterface.execute(db, "SELECT filter FROM SecurityFilters WHERE id = ?", (filter_id,)) |> DataFrame
-        filter = SecurityFilter(filter_id |> UUID, JSON.Parser.parse(rs.filter |> first))
-    end
-    DBInterface.close!(db)
+    redis = RedisConnection()
+    securities::Union{String,Nothing} = get(redis, "dataframe:securities")
+    lastupdate = get(redis, "timestamp:last.data.update")
+    filter_options::Union{String,Nothing} = haskey(c.params, "filter") ? get(redis, "dict:filter:" * c.params["filter"]) : nothing
+    if filter_options != nothing expire(redis, "dict:filter:" * c.params["filter"], 60*60*24*30) end
+    disconnect(redis)
 
-    if filter_id != nothing
-        apply!(securities, filter)
-    end
+    filter = filter_options != nothing ? SecurityFilter(c.params["filter"] |> UUID, JSON.Parser.parse(filter_options)) : nothing
+    df = securities != nothing ? dataframe(securities) : nothing
 
-    lastupdate = updates.timestamp |> first
+    if df == nothing
+        @warn "no security data found"
+        c.conn.request.response.status = 404
+        return render(JSON, "error" => "no security data found")
+    end
+    if filter != nothing
+        apply!(df, filter)
+    end
+    
     res = Dict()
-    res["rows"] = preparedata(securities)
+    res["rows"] = preparedata(df)
     res["cols"] = ["Company", "ISIN", "Price-earnings ratio", "Price-book ratio", "Dividend-return ratio", "Dividend-return ratio (Avg 3)", "Dividend-return ratio (Avg 5)", "Revenue", "Net income", "Country", "Industry", "Sector", "Sub sector", "Share price (EUR)", "Dividend per share (EUR)", "Annual report"]
-    res["metadata"] = Dict("interval" => update_interval, "lastupdate" => lastupdate, "nrow" => nrow(securities))
+    res["metadata"] = Dict("interval" => update_interval, "lastupdate" => lastupdate, "nrow" => nrow(df))
     vals = Dict()
-    vals["revenue"] = [Int64(round(securities.revenue |> skipmissing |> minimum, digits=0)), Int64(round(securities.revenue |> skipmissing |> maximum, digits=0))]
-    vals["incomeNet"] = [Int64(round(securities.incomeNet |> skipmissing |> minimum, digits=0)), Int64(round(securities.incomeNet |> skipmissing |> maximum, digits=0))]
-    vals["priceEarningsRatio"] = [round(securities.priceEarningsRatio |> skipmissing |> minimum, digits=2), round(securities.priceEarningsRatio |> skipmissing |> maximum, digits=2)]
-    vals["priceBookRatio"] = [round(securities.priceBookRatio |> skipmissing |> minimum, digits=2), round(securities.priceBookRatio |> skipmissing |> maximum, digits=2)]
-    vals["industry"] = securities.industry |> skipmissing |> unique |> sort
-    vals["sector"] = securities.sector |> skipmissing |> unique |> sort
-    vals["subsector"] = securities.subsector |> skipmissing |> unique |> sort
-    vals["country"] = securities.country |> skipmissing |> unique |> sort
+    vals["revenue"] = [Int64(round(df.revenue |> skipmissing |> minimum, digits=0)), Int64(round(df.revenue |> skipmissing |> maximum, digits=0))]
+    vals["incomeNet"] = [Int64(round(df.incomeNet |> skipmissing |> minimum, digits=0)), Int64(round(df.incomeNet |> skipmissing |> maximum, digits=0))]
+    vals["priceEarningsRatio"] = [round(df.priceEarningsRatio |> skipmissing |> minimum, digits=2), round(df.priceEarningsRatio |> skipmissing |> maximum, digits=2)]
+    vals["priceBookRatio"] = [round(df.priceBookRatio |> skipmissing |> minimum, digits=2), round(df.priceBookRatio |> skipmissing |> maximum, digits=2)]
+    vals["industry"] = df.industry |> skipmissing |> unique |> Base.sort
+    vals["sector"] = df.sector |> skipmissing |> unique |> Base.sort
+    vals["subsector"] = df.subsector |> skipmissing |> unique |> Base.sort
+    vals["country"] = df.country |> skipmissing |> unique |> Base.sort
     res["values"] = vals
     render(JSON, res)
 end
@@ -67,38 +70,19 @@ function post_filters(c::AppController)
     dict = Dict()
     foreach(x -> push!(dict, x), c.params)
     filter = SecurityFilter(dict)
+
     if !isvalid(filter)
-        @warn "invalid filter definition"
-        @show filter.filter
+        @warn "invalid filter definition $(filter.options)"
         c.conn.request.response.status = 400
         return render(JSON, "error" => "invalid filter definition")
     end
 
-    db_access_failed = true
-    retry_count = 0
-    db = nothing
-    while db_access_failed && retry_count < 10
-        try
-            db = SQLite.DB(dbfile)
-            df = DataFrame(id = [filter.id |> string], date = [today() |> string], filter = [filter.filter |> json])
-            df |> SQLite.load!(db, "SecurityFilters")
+    redis = RedisConnection()
+    set(redis, "dict:filter:" * string(filter.id), filter.options |> json)
+    expire(redis, "dict:filter:" * string(filter.id), 60*60*24*30)
+    disconnect(redis)
 
-            db_access_failed = false
-        catch e
-            @warn "DB access failed"
-            DBInterface.close!(db)
-            retry_count += 1
-            sleep(1)
-        end
-    end
-    db != nothing && DBInterface.close!(db)
-
-    if db_access_failed
-        c.conn.request.response.status = 400
-        return render(JSON, "error" => "DB access failed")
-    else
-        render(JSON, "filterId" => filter.id |> string)
-    end
+    render(JSON, "filterId" => filter.id |> string)
 end
 
 # TODO fix access to files outside public folder
@@ -109,6 +93,15 @@ routes() do
     get("/securities", AppController, get_securities)
     post("/filters", AppController, post_filters)
 end
+
+
+# transform raw JSON string to DataFrame
+function dataframe(json::String)
+    dict = JSON.Parser.parse(json; null = missing)
+    df = DataFrame(dict["columns"])
+    rename!(df, dict["colindex"]["names"] .|> Symbol)
+    return df
+end    
 
 
 function preparedata(dataframe::DataFrame)
@@ -133,22 +126,20 @@ function preparedata(dataframe::DataFrame)
 end
 
 # apply security filter to security data frame
-function apply!(securities::DataFrame, securityfilter::SecurityFilter)
-    filter = securityfilter.filter
-
+function apply!(securities::DataFrame, filter::SecurityFilter)
     # filter categories
     mapping_categorical = Dict("country" => :country)
     for (k,v) in mapping_categorical
-        if haskey(filter, k)
-            filter!(row -> row[v] in filter[k], securities)
+        if haskey(filter.options, k)
+            filter!(row -> row[v] in filter.options[k], securities)
         end
     end
 
     # filter intervals
     mapping_intervals = Dict("revenue" => :revenue, "incomeNet" => :incomeNet, "priceEarningsRatio" => :priceEarningsRatio, "priceBookRatio" => :priceBookRatio)
     for (k,v) in mapping_intervals
-        if haskey(filter, k)
-            filter!(row -> row[v] !== missing ? row[v] >= filter[k][1] && row[v] <= filter[k][2] : false, securities)
+        if haskey(filter.options, k)
+            filter!(row -> row[v] !== missing ? row[v] >= filter.options[k][1] && row[v] <= filter.options[k][2] : false, securities)
         end
     end
 
@@ -158,8 +149,8 @@ function apply!(securities::DataFrame, securityfilter::SecurityFilter)
     # get lower than quantile
     mapping_percentiles = Dict("pPer" => :priceEarningsRatio, "pPbr" => :priceBookRatio)
     for (k,v) in mapping_percentiles
-        if haskey(filter, k)
-            threshold = quantile(dfcopy[!,v] |> skipmissing, filter[k])
+        if haskey(filter.options, k)
+            threshold = quantile(dfcopy[!,v] |> skipmissing, filter.options[k])
             filter!(row -> row[v] !== missing ? row[v] <= threshold : false, securities)
         end
     end
@@ -167,8 +158,8 @@ function apply!(securities::DataFrame, securityfilter::SecurityFilter)
     # get higher than quantile
     mapping_percentiles = Dict("pDrrl" => :dividendReturnRatioLast, "pDrr3" => :dividendReturnRatioAvg3, "pDrr5" => :dividendReturnRatioAvg5)
     for (k,v) in mapping_percentiles
-        if haskey(filter, k)
-            threshold = quantile(dfcopy[!,v] |> skipmissing, filter[k])
+        if haskey(filter.options, k)
+            threshold = quantile(dfcopy[!,v] |> skipmissing, filter.options[k])
             filter!(row -> row[v] !== missing ? row[v] >= threshold : false, securities)
         end
     end
@@ -176,8 +167,8 @@ end
 
 
 # security filter validation
-function isvalid(securityfilter::SecurityFilter)::Bool
-    dict = securityfilter.filter
+function isvalid(filter::SecurityFilter)::Bool
+    dict = filter.options
     if keys(dict) |> length == 0
         return false
     end
@@ -213,11 +204,12 @@ isinterval(i) = i isa Array && length(i) == 2 && i[1] isa Number && i[2] isa Num
 ispercentile(p) = p isa Float64 && p >= 0.01 && p <= 0.99
 
 
+# start server and trigger data updates
 if !isinteractive()
     Bukdu.start(8000, host = "0.0.0.0")
     while true
         @info "start data update"
-        update_db(dbfile, concurrent_execution = true)
+        update_db(concurrent_execution = true)
         @info "data update completed"
         sleep(update_interval)
     end
