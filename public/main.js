@@ -227,16 +227,16 @@ $( document ).ready(function() {
         step: 1000000000,
         values: [Math.floor(res.values.incomeNet[0] / 1000000000 * 1000000000), Math.ceil(res.values.incomeNet[1] / 1000000000) * 1000000000],
         slide: function( event, ui ) {
-          $( "#net-income-from" ).text( (ui.values[0]).toLocaleString("en") );
-          $( "#net-income-to" ).text( (ui.values[1]).toLocaleString("en") );
+          $( "#income-net-from" ).text( (ui.values[0]).toLocaleString("en") );
+          $( "#income-net-to" ).text( (ui.values[1]).toLocaleString("en") );
           if (ui.values[0] < 0 && $('#positive-income-net').prop('checked')) {
             $('#positive-income-net').prop('checked', false)
           }
           createFilter();
         }
       });
-      $( "#net-income-from" ).text( $( "#slider-income-net" ).slider( "values", 0 ).toLocaleString("en") );
-      $( "#net-income-to" ).text( $( "#slider-income-net" ).slider( "values", 1 ).toLocaleString("en") );
+      $( "#income-net-from" ).text( $( "#slider-income-net" ).slider( "values", 0 ).toLocaleString("en") );
+      $( "#income-net-to" ).text( $( "#slider-income-net" ).slider( "values", 1 ).toLocaleString("en") );
     } );
     $('#positive-income-net').on('click', function() {
       checked = $(this).prop('checked')

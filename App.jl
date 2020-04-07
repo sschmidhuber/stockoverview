@@ -209,7 +209,7 @@ if !isinteractive()
     Bukdu.start(8000, host = "0.0.0.0")
     while true
         @info "start data update"
-        update_db(concurrent_execution = true)
+        update_db()
         @info "data update completed"
         sleep(update_interval)
     end
