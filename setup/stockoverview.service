@@ -1,0 +1,15 @@
+[Unit]
+Description=Stock Overview web application
+Requires=redis.service
+After=redis.service
+
+[Service]
+ExecStart=julia "APP"
+User=USER
+WorkingDirectory=DIR
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+ProtectSystem=strict
+
