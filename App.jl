@@ -32,8 +32,11 @@ function get_securities(c::AppController)
     redis = RedisConnection()
     securities::Union{String,Nothing} = get(redis, "dataframe:securities")
     lastupdate = get(redis, "timestamp:last.data.update")
+
+    # get filter if there is any
     filter_options::Union{String,Nothing} = haskey(c.params, "filter") ? get(redis, "dict:filter:" * c.params["filter"]) : nothing
     if filter_options != nothing expire(redis, "dict:filter:" * c.params["filter"], 60*60*24*30) end
+
     disconnect(redis)
 
     filter = filter_options != nothing ? SecurityFilter(c.params["filter"] |> UUID, JSON.Parser.parse(filter_options)) : nothing
@@ -44,14 +47,16 @@ function get_securities(c::AppController)
         c.conn.request.response.status = 404
         return render(JSON, "error" => "no security data found")
     end
-    if filter != nothing
-        apply!(df, filter)
+    if filter == nothing
+        filtered_df = df
+    else
+        filtered_df = apply(df, filter)
     end
     
     res = Dict()
-    res["rows"] = preparedata(df)
+    res["rows"] = preparedata(filtered_df)
     res["cols"] = ["Company", "ISIN", "Price-earnings ratio", "Price-book ratio", "Dividend-return ratio", "Dividend-return ratio (Avg 3)", "Dividend-return ratio (Avg 5)", "Revenue", "Net income", "Country", "Industry", "Sector", "Sub sector", "Share price (EUR)", "Dividend per share (EUR)", "Annual report"]
-    res["metadata"] = Dict("interval" => update_interval, "lastupdate" => lastupdate, "nrow" => nrow(df))
+    res["metadata"] = Dict("interval" => update_interval, "lastupdate" => lastupdate, "nrow" => nrow(filtered_df))
     vals = Dict()
     vals["revenue"] = [Int64(round(df.revenue |> skipmissing |> minimum, digits=0)), Int64(round(df.revenue |> skipmissing |> maximum, digits=0))]
     vals["incomeNet"] = [Int64(round(df.incomeNet |> skipmissing |> minimum, digits=0)), Int64(round(df.incomeNet |> skipmissing |> maximum, digits=0))]
@@ -123,6 +128,13 @@ function preparedata(dataframe::DataFrame)
     data = map(eachrow(df)) do row
         collect(row)
     end
+end
+
+# apply security filter to security data frame
+function apply(securities::DataFrame, filter::SecurityFilter)
+    df = deepcopy(securities)
+    apply!(df, filter)
+    return df
 end
 
 # apply security filter to security data frame
