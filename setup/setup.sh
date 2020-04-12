@@ -3,6 +3,7 @@
 ## idempotent setup script for Linux systems
 
 USER=$(whoami)
+UNPRIVILEGED_USER=$(logname)
 if [[ $USER != "root" ]]; then
     echo "this script has to be executed with \"root\" privileges"
     echo "run as: sudo ./setup.sh"
@@ -37,19 +38,18 @@ fi
 # install julia packages
 echo -e "\n\n## install and update Julia dependencies\n"
 cd "$(dirname "$0")"
-./dependencies.jl
+sudo -u "$UNPRIVILEGED_USER" ./dependencies.jl
 
 # setup systemd service unit
 echo -e "\n\n## configure systemd service unit\n"
 cd ..
 APP_PATH=$(pwd)/App.jl
 APP_DIR=$(pwd)
-USER_NAME=$(logname)
 UNIT_DIR="/etc/systemd/system"
 
 sed "s|APP|$APP_PATH|" ./setup/stockoverview.service > ./setup/stockoverview.service_tmp
 sed -i "s|DIR|$APP_DIR|" ./setup/stockoverview.service_tmp
-sed -i "s|USER|$USER_NAME|" ./setup/stockoverview.service_tmp
+sed -i "s|USER|$UNPRIVILEGED_USER|" ./setup/stockoverview.service_tmp
 mv ./setup/stockoverview.service_tmp "${UNIT_DIR}/stockoverview.service"
 chmod +r "${UNIT_DIR}/stockoverview.service"
 

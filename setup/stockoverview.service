@@ -1,6 +1,6 @@
 [Unit]
 Description=Stock Overview web application
-Requires=redis.service
+Wants=redis.service
 After=redis.service
 
 [Service]
