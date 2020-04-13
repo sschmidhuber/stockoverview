@@ -56,7 +56,7 @@ function get_securities(c::AppController)
     res = Dict()
     res["rows"] = preparedata(filtered_df)
     res["cols"] = ["Company", "ISIN", "Price-earnings ratio", "Price-book ratio", "Dividend-return ratio", "Dividend-return ratio (Avg 3)", "Dividend-return ratio (Avg 5)", "Revenue", "Net income", "Country", "Industry", "Sector", "Sub sector", "Share price (EUR)", "Dividend per share (EUR)", "Annual report"]
-    res["metadata"] = Dict("interval" => update_interval, "lastupdate" => lastupdate, "nrow" => nrow(filtered_df))
+    res["metadata"] = Dict("interval" => update_interval, "lastupdate" => lastupdate, "nrow" => nrow(filtered_df), "filtered" => filter != nothing)
     vals = Dict()
     vals["revenue"] = [Int64(round(df.revenue |> skipmissing |> minimum, digits=0)), Int64(round(df.revenue |> skipmissing |> maximum, digits=0))]
     vals["incomeNet"] = [Int64(round(df.incomeNet |> skipmissing |> minimum, digits=0)), Int64(round(df.incomeNet |> skipmissing |> maximum, digits=0))]
@@ -161,7 +161,7 @@ function apply!(securities::DataFrame, filter::SecurityFilter)
     # get lower than quantile
     mapping_percentiles = Dict("pPer" => :priceEarningsRatio, "pPbr" => :priceBookRatio)
     for (k,v) in mapping_percentiles
-        if haskey(filter.options, k)
+        if haskey(filter.options, k) && length(dfcopy[!,v] |> skipmissing |> collect) > 0
             threshold = quantile(dfcopy[!,v] |> skipmissing, filter.options[k])
             filter!(row -> row[v] !== missing ? row[v] <= threshold : false, securities)
         end
@@ -170,7 +170,7 @@ function apply!(securities::DataFrame, filter::SecurityFilter)
     # get higher than quantile
     mapping_percentiles = Dict("pDrrl" => :dividendReturnRatioLast, "pDrr3" => :dividendReturnRatioAvg3, "pDrr5" => :dividendReturnRatioAvg5)
     for (k,v) in mapping_percentiles
-        if haskey(filter.options, k)
+        if haskey(filter.options, k) && length(dfcopy[!,v] |> skipmissing |> collect) > 0
             threshold = quantile(dfcopy[!,v] |> skipmissing, filter.options[k])
             filter!(row -> row[v] !== missing ? row[v] >= threshold : false, securities)
         end
