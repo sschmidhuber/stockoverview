@@ -119,8 +119,8 @@ function preparedata(dataframe::DataFrame)
     df.revenue = map(x -> x === missing ? "" : format(Int64(round(x, digits=0)), commas=true), df.revenue)
     df.incomeNet = map(x -> x === missing ? "" : format(Int64(round(x, digits=0)), commas=true), df.incomeNet)
 
-    # transform ISINs to hyperlinks
-    df.isin = map(row -> """<a href="$(row.url)" target="_blank">$(row.isin)</a>""", eachrow(df))
+    # transform names to hyperlinks
+    df.security = map(row -> """<a href="$(row.url)" target="_blank">$(row.security)</a>""", eachrow(df))
 
     # remove url and currency columns
     df = df[:,1:end-2]

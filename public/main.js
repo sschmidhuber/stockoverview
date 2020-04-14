@@ -31,6 +31,18 @@ $( document ).ready(function() {
     $('.toggle-vis').on( 'click', function (e) {
       let column = dataframe.column( $(this).attr('data-column') );
       column.visible( ! column.visible() );
+
+      col = $(this).attr('data-column');
+      unselectCols = JSON.parse(window.localStorage.getItem("unselectCols"))
+      if (unselectCols == null) {
+        console.log("no \"unselectCols\" found");
+        return
+      } else if (unselectCols.includes(col)) {
+        unselectCols = unselectCols.filter(function(value){ return value != col;});
+      } else {
+        unselectCols.push(col)
+      }
+      window.localStorage.setItem("unselectCols", JSON.stringify(unselectCols))
     });
 
 
@@ -249,11 +261,17 @@ $( document ).ready(function() {
     $('#country-filter').selectpicker('refresh');
     $('#country-filter').on('change', createFilter);
 
-    // set default column selection
-    unselectCols = [5,6,11,12,14]
+    // column selection
+    unselectCols = JSON.parse(window.localStorage.getItem("unselectCols"));
+    if (unselectCols == null) {
+      unselectCols = [5,6,11,12,14] // set default if nothing is found in local storage
+      window.localStorage.setItem("unselectCols", JSON.stringify(unselectCols));
+    }
     unselectCols.forEach((col,i) => {
       let column = dataframe.column(col)
       column.visible( ! column.visible() )
+      console.log("remove checked attr for: " + col);
+      
       $('#toggle-col-' + col).removeAttr("checked")
     });
 
@@ -303,12 +321,8 @@ $( document ).ready(function() {
 
   // set filter widgets accorind to stored filter options
   function setFilterWidgets() {
-    filter = JSON.parse(window.localStorage.getItem("filterOptions"));
-    console.log(filter);
-    
-    keys = Object.keys(filter);
-    console.log(keys);
-    
+    filter = JSON.parse(window.localStorage.getItem("filterOptions"));    
+    keys = Object.keys(filter);    
 
     if (keys.includes("country")) {
       $("#country-filter").val(filter.country)
