@@ -1,7 +1,5 @@
 [Unit]
 Description=Stock Overview web application
-Wants=redis.service
-After=redis.service
 
 [Service]
 ExecStart=julia "APP"
