@@ -6,7 +6,7 @@ $( document ).ready(function() {
   })
 
   // load initial securities table
-  $.get('/securities', { "filter": window.localStorage.getItem("filterId") }, function(res){
+  $.get('/securities', { "filter": localStorage.getItem("filterId") }, function(res){
 
     // datatable columns
     columns = []
@@ -33,16 +33,15 @@ $( document ).ready(function() {
       column.visible( ! column.visible() );
 
       col = $(this).attr('data-column');
-      unselectCols = JSON.parse(window.localStorage.getItem("unselectCols"))
+      unselectCols = JSON.parse(localStorage.getItem("unselectCols"))
       if (unselectCols == null) {
-        console.log("no \"unselectCols\" found");
         return
       } else if (unselectCols.includes(col)) {
         unselectCols = unselectCols.filter(function(value){ return value != col;});
       } else {
         unselectCols.push(col)
       }
-      window.localStorage.setItem("unselectCols", JSON.stringify(unselectCols))
+      localStorage.setItem("unselectCols", JSON.stringify(unselectCols))
     });
 
 
@@ -108,8 +107,8 @@ $( document ).ready(function() {
         
         if (Object.keys(filter).length != 0) {          
           $.post("/filters", JSON.stringify(filter), function (res) {
-            window.localStorage.setItem("filterId", res.filterId);
-            window.localStorage.setItem("filterOptions", JSON.stringify(filter));
+            localStorage.setItem("filterId", res.filterId);
+            localStorage.setItem("filterOptions", JSON.stringify(filter));
             updateDataFrame(res.filterId);
           });
         }
@@ -262,16 +261,14 @@ $( document ).ready(function() {
     $('#country-filter').on('change', createFilter);
 
     // column selection
-    unselectCols = JSON.parse(window.localStorage.getItem("unselectCols"));
+    unselectCols = JSON.parse(localStorage.getItem("unselectCols"));
     if (unselectCols == null) {
       unselectCols = [5,6,11,12,14] // set default if nothing is found in local storage
-      window.localStorage.setItem("unselectCols", JSON.stringify(unselectCols));
+      localStorage.setItem("unselectCols", JSON.stringify(unselectCols));
     }
     unselectCols.forEach((col,i) => {
       let column = dataframe.column(col)
-      column.visible( ! column.visible() )
-      console.log("remove checked attr for: " + col);
-      
+      column.visible( ! column.visible() )      
       $('#toggle-col-' + col).removeAttr("checked")
     });
 
@@ -280,24 +277,12 @@ $( document ).ready(function() {
     $(':input').addClass('form-control')
     $('#dataframe').addClass('table table-striped table-bordered')
     $('#dataframe').removeClass('invisible')
-    $('#filter').removeClass('invisible')
+    $('#toolbar').removeClass('invisible')
 
     // display time since last data update
-    interval = res.metadata.interval
-    lastupdate = Date.parse(res.metadata.lastupdate)
+    sessionStorage.setItem("interval", res.metadata.interval)
+    sessionStorage.setItem("lastupdate", Date.parse(res.metadata.lastupdate))
 
-    function displayTime() {
-      let time_string;
-      time = Math.round((Date.now() - lastupdate) / 1000 / 60)
-      hours = Math.floor(time / 60)
-      minutes = time % 60
-      if (hours == 0) {
-        time_string = minutes + " min"
-      } else {
-        time_string = hours + " h " + minutes + " min"
-      }
-      $('div.toolbar').html("last data update: <code>" + time_string + "</code>")
-    }
     displayTime()
     setInterval(displayTime, 10000);
 
@@ -319,9 +304,36 @@ $( document ).ready(function() {
     $(target).show()
   });
 
+  function displayTime() {
+    let time_string;
+    let lastupdate = parseInt(sessionStorage.getItem("lastupdate"))
+    let interval = parseInt(sessionStorage.getItem("interval"))
+    let now = Date.now()
+
+    time = Math.round((now - lastupdate) / 1000 / 60)    
+    hours = Math.floor(time / 60)
+    minutes = time % 60
+
+    if (hours == 0) {
+      time_string = minutes + " min"
+    } else {
+      time_string = hours + " h " + minutes + " min"
+    }
+    $('div.toolbar').html("last data update: <code>" + time_string + "</code>")
+
+    if (now > lastupdate + interval * 1000 + 60 * 1000 && !Boolean(sessionStorage.getItem("reload"))) {
+      $.get("/securities/metadata", function (res) {
+        if (Date.parse(res.lastupdate) > lastupdate) {          
+          $("#reload").removeClass("invisible")
+          sessionStorage.setItem("reload", "true")
+        }
+      });
+    }
+  }
+
   // set filter widgets accorind to stored filter options
   function setFilterWidgets() {
-    filter = JSON.parse(window.localStorage.getItem("filterOptions"));    
+    filter = JSON.parse(localStorage.getItem("filterOptions"));    
     keys = Object.keys(filter);    
 
     if (keys.includes("country")) {
@@ -396,18 +408,32 @@ $( document ).ready(function() {
   // update data
   function updateDataFrame(filter = null) {
     if (filter === null) {
-      $.get('/securities', function (res) {
-        $('#dataframe').DataTable({
-          data: res.rows
-        });
-      });
+      $.get('/securities', updateRows);
     } else {
-      $.get('/securities', { "filter": filter }, function (res) {
-        dataFrame = $('#dataframe').DataTable();
-        dataFrame.clear();
-        dataFrame.rows.add(res.rows).draw()
-      });
+      $.get('/securities', { "filter": filter }, updateRows);
+    }
+
+    function updateRows(res) {
+      dataFrame = $('#dataframe').DataTable();
+      dataFrame.clear();
+      dataFrame.rows.add(res.rows).draw()
+
+      if (Boolean(sessionStorage.getItem("reload")) && sessionStorage.getItem("lastupdate") < Date.parse(res.metadata.lastupdate)) {
+        sessionStorage.removeItem("reload")
+        $("#reload").addClass("invisible")
+        sessionStorage.setItem("lastupdate", Date.parse(res.metadata.lastupdate))
+        displayTime()
+      } else {
+        sessionStorage.setItem("lastupdate", Date.parse(res.metadata.lastupdate))
+      }            
     }
   }
+
+  $("#reload").on("click", function (event) {
+    event.preventDefault();
+    console.log("reload");
+    
+    updateDataFrame(localStorage.getItem("filterId"))
+  });
 
 });

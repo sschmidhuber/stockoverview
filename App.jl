@@ -68,6 +68,24 @@ function get_securities(c::AppController)
     vals["country"] = df.country |> skipmissing |> unique |> Base.sort
     res["values"] = vals
     render(JSON, res)
+end # get_securities
+
+# GET /securities/metadata
+function get_metadata(c::AppController)
+    redis = RedisConnection()
+    securities::Union{String,Nothing} = get(redis, "dataframe:securities")
+    lastupdate = get(redis, "timestamp:last.data.update")
+    disconnect(redis)
+
+    df = securities != nothing ? dataframe(securities) : nothing
+
+    if df == nothing
+        @warn "no security data found"
+        c.conn.request.response.status = 404
+        return render(JSON, "error" => "no security data found")
+    end
+
+    render(JSON, Dict("interval" => update_interval, "lastupdate" => lastupdate, "nrow" => nrow(df)))
 end
 
 # POST /filters
@@ -96,6 +114,7 @@ routes() do
     plug(Plug.Static, at="/", from=normpath(@__DIR__, "public"))
     plug(Plug.Static, at="/", from=normpath(@__DIR__, "."))
     get("/securities", AppController, get_securities)
+    get("/securities/metadata", AppController, get_metadata)
     post("/filters", AppController, post_filters)
 end
 
