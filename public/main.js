@@ -22,10 +22,7 @@ $( document ).ready(function() {
     } );
 
     // align number columns
-    columns = [2,3,4,5,6,7,8,13,14,15]
-    columns.forEach((col, i) => {
-      $(dataframe.column(col).nodes()).attr("style", "text-align: right");
-    });
+    alignColumns(dataframe, [2,3,4,5,6,7,8,13,14,15], "text-align: right");
 
     // column visibility (show / hide)
     $('.toggle-vis').on( 'click', function (e) {
@@ -109,7 +106,7 @@ $( document ).ready(function() {
           $.post("/filters", JSON.stringify(filter), function (res) {
             localStorage.setItem("filterId", res.filterId);
             localStorage.setItem("filterOptions", JSON.stringify(filter));
-            updateDataFrame(res.filterId);
+            updatedataframe(res.filterId);
           });
         }
       }, 2000)
@@ -406,7 +403,7 @@ $( document ).ready(function() {
   }
 
   // update data
-  function updateDataFrame(filter = null) {
+  function updatedataframe(filter = null) {
     if (filter === null) {
       $.get('/securities', updateRows);
     } else {
@@ -414,9 +411,11 @@ $( document ).ready(function() {
     }
 
     function updateRows(res) {
-      dataFrame = $('#dataframe').DataTable();
-      dataFrame.clear();
-      dataFrame.rows.add(res.rows).draw()
+      dataframe = $('#dataframe').DataTable();
+      dataframe.clear();
+      dataframe.rows.add(res.rows)
+      alignColumns(dataframe, [2,3,4,5,6,7,8,13,14,15], "text-align: right");
+      dataframe.draw()
 
       if (Boolean(sessionStorage.getItem("reload")) && sessionStorage.getItem("lastupdate") < Date.parse(res.metadata.lastupdate)) {
         sessionStorage.removeItem("reload")
@@ -429,11 +428,16 @@ $( document ).ready(function() {
     }
   }
 
+  // align table columns
+  function alignColumns(dataframe, columns, alignment) {
+    columns.forEach((col, i) => {
+      $(dataframe.column(col).nodes()).attr("style", alignment);
+    });
+  }
+
   $("#reload").on("click", function (event) {
-    event.preventDefault();
-    console.log("reload");
-    
-    updateDataFrame(localStorage.getItem("filterId"))
+    event.preventDefault();    
+    updatedataframe(localStorage.getItem("filterId"))
   });
 
 });
