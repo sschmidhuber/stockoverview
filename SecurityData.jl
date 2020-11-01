@@ -51,7 +51,7 @@ function fetchname(isin::String)::Union{String,Missing}
     news = Dict()
 
     try
-        res = HTTP.request("GET", "https://api.boerse-frankfurt.de/data/instrument_news?isin=$isin&limit=0&newsType=ALL");
+        res = HTTP.request("GET", "https://api.boerse-frankfurt.de/v1/data/instrument_news?isin=$isin&limit=0&newsType=ALL");
         news = JSON.parse(res.body |> String, null=missing)
     catch e
         return missing
@@ -81,7 +81,7 @@ end
 function fetchmasterdata(isin::String, language::String)::Tuple
     masterdata = nothing
     try
-        res = HTTP.request("GET", "https://api.boerse-frankfurt.de/data/equity_master_data?isin=$isin")
+        res = HTTP.request("GET", "https://api.boerse-frankfurt.de/v1/data/equity_master_data?isin=$isin")
         masterdata = JSON.parse(res.body |> String, null=missing)
     catch e
         return missing, missing, missing, missing
@@ -97,7 +97,7 @@ end
 
 function fetchkeydata(isin::String, exchangerates::Dict{String,Float64}, years::Int = 6)::DataFrame
     try
-        res = HTTP.request("GET", "https://api.boerse-frankfurt.de/data/historical_key_data?isin=$isin&limit=$years")
+        res = HTTP.request("GET", "https://api.boerse-frankfurt.de/v1/data/historical_key_data?isin=$isin&limit=$years")
         payload = JSON.parse(res.body |> String, null=missing)
         data = payload["data"]
 
@@ -138,7 +138,7 @@ end
 function fetchequitydata(isin::String)::Union{Int64,Missing}
     equitydata = nothing
     try
-        res = HTTP.request("GET", "https://api.boerse-frankfurt.de/data/equity_key_data?isin=$isin")
+        res = HTTP.request("GET", "https://api.boerse-frankfurt.de/v1/data/equity_key_data?isin=$isin")
         equitydata = JSON.parse(res.body |> String, null=missing)
     catch e
         return missing

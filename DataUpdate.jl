@@ -13,13 +13,14 @@ using Dates
 using .SecurityData
 import Base.push!
 
-export update_db
+export update_db, fetchexchangerates
 
 
 function update_db(concurrent_execution = true)
     @info "read \"Securities.csv\" file"
     securities = CSV.read("data/Securities.csv")
     @info "$(nrow(securities)) ISINs"
+
     df = DataFrame(
         security = String[],
         isin = String[],
@@ -60,6 +61,7 @@ function update_db(concurrent_execution = true)
     else
         # fetch sequential
         foreach(securities.ISIN) do isin
+            @info isin
             security = fetchsecurity(isin, exchangerates)
             push!(df, security)
             sleep(1) # to ensure little load on requested servers

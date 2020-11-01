@@ -35,19 +35,19 @@ function get_securities(c::AppController)
 
     # get filter if there is any
     filter_options::Union{String,Nothing} = haskey(c.params, "filter") ? get(redis, "dict:filter:" * c.params["filter"]) : nothing
-    if filter_options != nothing expire(redis, "dict:filter:" * c.params["filter"], 60*60*24*30) end
+    if filter_options !== nothing expire(redis, "dict:filter:" * c.params["filter"], 60*60*24*30) end
 
     disconnect(redis)
 
-    filter = filter_options != nothing ? SecurityFilter(c.params["filter"] |> UUID, JSON.Parser.parse(filter_options)) : nothing
-    df = securities != nothing ? dataframe(securities) : nothing
+    filter = filter_options !== nothing ? SecurityFilter(c.params["filter"] |> UUID, JSON.Parser.parse(filter_options)) : nothing
+    df = securities !== nothing ? dataframe(securities) : nothing
 
-    if df == nothing
+    if df === nothing || nrow(df) == 0
         @warn "no security data found"
         c.conn.request.response.status = 404
         return render(JSON, "error" => "no security data found")
     end
-    if filter == nothing
+    if filter === nothing
         filtered_df = df
     else
         filtered_df = apply(df, filter)
@@ -77,9 +77,9 @@ function get_metadata(c::AppController)
     lastupdate = get(redis, "timestamp:last.data.update")
     disconnect(redis)
 
-    df = securities != nothing ? dataframe(securities) : nothing
+    df = securities !== nothing ? dataframe(securities) : nothing
 
-    if df == nothing
+    if df === nothing
         @warn "no security data found"
         c.conn.request.response.status = 404
         return render(JSON, "error" => "no security data found")
@@ -121,9 +121,7 @@ end
 
 # transform raw JSON string to DataFrame
 function dataframe(json::String)
-    dict = JSON.Parser.parse(json; null = missing)
-    df = DataFrame(dict["columns"])
-    rename!(df, dict["colindex"]["names"] .|> Symbol)
+    df = JSON.Parser.parse(json; null = missing) |> DataFrame
     return df
 end    
 
@@ -141,8 +139,8 @@ function preparedata(dataframe::DataFrame)
     # transform names to hyperlinks
     df.security = map(row -> """<a href="$(row.url)" target="_blank">$(row.security)</a>""", eachrow(df))
 
-    # remove url and currency columns
-    df = df[:,1:end-2]
+    # put columns in correct sequence
+    df = df[:,[:security, :isin, :priceEarningsRatio, :priceBookRatio, :dividendReturnRatioLast, :dividendReturnRatioAvg3, :dividendReturnRatioAvg5, :revenue, :incomeNet, :country, :industry, :sector, :subsector, :price, :dividendPerShare, :year]]
 
     data = map(eachrow(df)) do row
         collect(row)
