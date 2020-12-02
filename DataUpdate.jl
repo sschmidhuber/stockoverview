@@ -18,7 +18,7 @@ export update_db, fetchexchangerates
 
 function update_db(concurrent_execution = true)
     @info "read \"Securities.csv\" file"
-    securities = CSV.read("data/Securities.csv")
+    securities = CSV.read("data/Securities.csv", DataFrame)
     @info "$(nrow(securities)) ISINs"
 
     df = DataFrame(
@@ -68,9 +68,11 @@ function update_db(concurrent_execution = true)
         end
     end
 
+    @info "$(nrow(df)) securities fetched"
     # map and transform values
     replace!(df.country, "JE" => "Jersey", "US" => "United States", "IL" => "Israel", "PA" => "Panama", "BM" => "Bermudas", "CW" => "Curaçao", "CN" => "China", "JP" => "Japan", "LI" => "Liechtenstein", "GG" => "Guernsey", "LR" => "Liberia")
 
+    @info "store security data to DB"
     redis = RedisConnection()
     set(redis, "dataframe:securities", df |> json)
     set(redis, "timestamp:last.data.update", Dates.format(now(Dates.UTC), "yyyy-mm-ddTHH:MM:SS") * "Z")
