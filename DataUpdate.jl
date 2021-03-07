@@ -16,7 +16,7 @@ import Base.push!
 export update_db, fetchexchangerates
 
 
-function update_db(concurrent_execution = true)
+function update_db(concurrent_execution = false)
     @info "read \"Securities.csv\" file"
     securities = CSV.read("data/Securities.csv", DataFrame)
     @info "$(nrow(securities)) ISINs"
