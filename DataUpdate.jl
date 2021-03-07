@@ -28,15 +28,12 @@ function update_db(concurrent_execution = true)
         priceBookRatio = [],
         dividendReturnRatioLast = [],
         dividendReturnRatioAvg3 = [],
-        dividendReturnRatioAvg5 = [],
         revenue = [],
-        incomeNet = [],
+        resultOfOperations = [],
+        incomeAfterTax = [],
         country = [],
         industry = [],
-        sector = [],
-        subsector = [],
         price = [],
-        dividendPerShare = [],
         year = [],
         url = String[],
         currency = [],
@@ -56,21 +53,25 @@ function update_db(concurrent_execution = true)
         # fetch results
         foreach(tasks) do task
             security = fetch(task)
-            push!(df, security)
+            if security !== nothing
+                push!(df, security)
+            end
         end
     else
         # fetch sequential
         foreach(securities.ISIN) do isin
             @info isin
             security = fetchsecurity(isin, exchangerates)
-            push!(df, security)
-            sleep(1) # to ensure little load on requested servers
+            if security !== nothing
+                push!(df, security)
+            end
+            sleep(1) # to ensure low request frequency on server
         end
     end
 
     @info "$(nrow(df)) securities fetched"
     # map and transform values
-    replace!(df.country, "JE" => "Jersey", "US" => "United States", "IL" => "Israel", "PA" => "Panama", "BM" => "Bermudas", "CW" => "Curaçao", "CN" => "China", "JP" => "Japan", "LI" => "Liechtenstein", "GG" => "Guernsey", "LR" => "Liberia")
+    #replace!(df.country, "JE" => "Jersey", "US" => "United States", "IL" => "Israel", "PA" => "Panama", "BM" => "Bermudas", "CW" => "Curaçao", "CN" => "China", "JP" => "Japan", "LI" => "Liechtenstein", "GG" => "Guernsey", "LR" => "Liberia")
 
     @info "store security data to DB"
     redis = RedisConnection()
@@ -96,24 +97,21 @@ end
 
 function push!(df::DataFrame, security::Security)
     if security.name !== missing
-        if security.histkeydata |> nrow != 0
+        if security.pl_data |> nrow != 0
             push!(df, [
             security.name,
             security.isin,
             security.price_earnings_ratio,
-            security.histkeydata.priceBookRatio |> first,
+            security.price_book_ratio,
             security.dividend_return_ratio_last,
             security.dividend_return_ratio_avg3,
-            security.dividend_return_ratio_avg5,
-            security.histkeydata.revenue |> first,
-            security.histkeydata.incomeNet |> first,
+            security.pl_data.revenue |> first,
+            security.pl_data.result_of_operations |> first,
+            security.pl_data.income_after_tax |> first,
             security.country,
             security.industry,
-            security.sector,
-            security.subsector,
             security.last_price,
-            security.histkeydata.dividendPerShare |> first,
-            security.histkeydata.year |> first,
+            security.pl_data.year |> first,
             "https://wertpapiere.ing.de/Investieren/Aktie/$(security.isin)",
             security.currency
             ])

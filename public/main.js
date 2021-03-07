@@ -22,7 +22,7 @@ $( document ).ready(function() {
     } );
 
     // align number columns
-    alignColumns(dataframe, [2,3,4,5,6,7,8,13,14,15], "text-align: right");
+    alignColumns(dataframe, [2,3,4,5,6,7,8,11,12], "text-align: right");
 
     // column visibility (show / hide)
     $('.toggle-vis').on( 'click', function (e) {
@@ -55,6 +55,11 @@ $( document ).ready(function() {
           filter.country = countries
         }
 
+        let industries = $('#industry-filter').val()
+        if (industries.length > 0) {
+          filter.industry = industries
+        }
+
         let positivePer = $('#positive-per').prop('checked')
         if (positivePer) {
           filter.priceEarningsRatio = [0,res.values.priceEarningsRatio[1]]
@@ -71,10 +76,16 @@ $( document ).ready(function() {
           filter.revenue = [minRevenue, maxRevenue]
         }
 
-        let minIncomeNet = $( "#slider-income-net" ).slider( "values", 0 )
-        let maxIncomeNet = $( "#slider-income-net" ).slider( "values", 1 )
-        if (minIncomeNet > res.values.incomeNet[0] || maxIncomeNet < res.values.incomeNet[1]) {
-          filter.incomeNet = [minIncomeNet, maxIncomeNet]
+        let minResultOfOperations = $( "#slider-result-of-operations" ).slider( "values", 0 )
+        let maxResultOfOperations = $( "#slider-result-of-operations" ).slider( "values", 1 )
+        if (minResultOfOperations > res.values.resultOfOperations[0] || maxResultOfOperations < res.values.resultOfOperations[1]) {
+          filter.resultOfOperations = [minResultOfOperations, maxResultOfOperations]
+        }
+
+        let minIncomeAfterTax = $( "#slider-income-after-tax" ).slider( "values", 0 )
+        let maxIncomeAfterTax = $( "#slider-income-after-tax" ).slider( "values", 1 )
+        if (minIncomeAfterTax > res.values.incomeAfterTax[0] || maxIncomeAfterTax < res.values.incomeAfterTax[1]) {
+          filter.incomeAfterTax = [minIncomeAfterTax, maxIncomeAfterTax]
         }
         
         let pPer = $( "#slider-per" ).slider( "value" )
@@ -97,11 +108,6 @@ $( document ).ready(function() {
           filter.pDrr3 = Math.abs(pDrr3) / 100
         }
         
-        let pDrr5 = $( "#slider-drr5" ).slider( "value" )
-        if (pDrr5 != -100) {
-          filter.pDrr5 = Math.abs(pDrr5) / 100
-        }
-        
         if (Object.keys(filter).length != 0) {          
           $.post("/filters", JSON.stringify(filter), function (res) {
             localStorage.setItem("filterId", res.filterId);
@@ -109,6 +115,7 @@ $( document ).ready(function() {
             updatedataframe(res.filterId);
           });
         }
+        updatedataframe();
       }, 2000)
     };
 
@@ -166,20 +173,6 @@ $( document ).ready(function() {
     });
     $("#p-drr3").text(Math.abs($("#slider-drr3").slider("value")) + "%");
 
-
-    // didivend-return ratio (avg 5)
-    $("#slider-drr5").slider({
-      range: "max",
-      value: -100,
-      min: -100,
-      max: -1,
-      slide: function (event, ui) {
-        $("#p-drr5").text(Math.abs(ui.value) + "%");
-        createFilter();
-      }
-    });
-    $("#p-drr5").text(Math.abs($("#slider-drr5").slider("value")) + "%");
-
     // revenue
     $("#slider-revenue").slider({
       range: true,
@@ -214,36 +207,72 @@ $( document ).ready(function() {
       createFilter();
     });
 
-    // net income
-    $("#slider-income-net").slider({
+
+    // result of operations
+    $("#slider-result-of-operations").slider({
       range: true,
-      min: Math.floor(res.values.incomeNet[0] / 1000000000) * 1000000000,
-      max: Math.ceil(res.values.incomeNet[1] / 1000000000) * 1000000000,
+      min: Math.floor(res.values.resultOfOperations[0] / 1000000000) * 1000000000,
+      max: Math.ceil(res.values.resultOfOperations[1] / 1000000000) * 1000000000,
       step: 1000000000,
-      values: [Math.floor(res.values.incomeNet[0] / 1000000000 * 1000000000), Math.ceil(res.values.incomeNet[1] / 1000000000) * 1000000000],
+      values: [Math.floor(res.values.resultOfOperations[0] / 1000000000) * 1000000000, Math.ceil(res.values.resultOfOperations[1] / 1000000000) * 1000000000],
       slide: function (event, ui) {
-        $("#income-net-from").text((ui.values[0]).toLocaleString("en"));
-        $("#income-net-to").text((ui.values[1]).toLocaleString("en"));
-        if (ui.values[0] < 0 && $('#positive-income-net').prop('checked')) {
-          $('#positive-income-net').prop('checked', false)
+        $("#result-of-operations-from").text((ui.values[0]).toLocaleString("en"));
+        $("#result-of-operations-to").text((ui.values[1]).toLocaleString("en"));
+        if (ui.values[0] < 0 && $('#positive-result-of-operations').prop('checked')) {
+          $('#positive-result-of-operations').prop('checked', false)
         }
         createFilter();
       }
     });
-    $("#income-net-from").text($("#slider-income-net").slider("values", 0).toLocaleString("en"));
-    $("#income-net-to").text($("#slider-income-net").slider("values", 1).toLocaleString("en"));
+    $("#result-of-operations-from").text($("#slider-result-of-operations").slider("values", 0).toLocaleString("en"));
+    $("#result-of-operations-to").text($("#slider-result-of-operations").slider("values", 1).toLocaleString("en"));
 
-    $('#positive-income-net').on('click', function() {
+    $('#positive-result-of-operations').on('click', function() {
       checked = $(this).prop('checked')
       if (checked) {
         
-        if ($( "#slider-income-net" ).slider("values", 0) < 0 ) {
-          $( "#income-net-from" ).text( "0" )
-          $( "#slider-income-net" ).slider("values", 0, 0)
+        if ($( "#slider-result-of-operations" ).slider("values", 0) < 0 ) {
+          $( "#result-of-operations-from" ).text( "0" )
+          $( "#slider-result-of-operations" ).slider("values", 0, 0)
         }
-        if ($( "#slider-income-net" ).slider("values", 1) < 0 ) {
-          $( "#income-net-to" ).text( "0" )
-          $( "#slider-income-net" ).slider("values", 1, 0)
+        if ($( "#slider-result-of-operations" ).slider("values", 1) < 0 ) {
+          $( "#result-of-operations-to" ).text( "0" )
+          $( "#slider-result-of-operations" ).slider("values", 1, 0)
+        }
+      }      
+      createFilter();
+    });
+
+    // income after tax
+    $("#slider-income-after-tax").slider({
+      range: true,
+      min: Math.floor(res.values.incomeAfterTax[0] / 1000000000) * 1000000000,
+      max: Math.ceil(res.values.incomeAfterTax[1] / 1000000000) * 1000000000,
+      step: 1000000000,
+      values: [Math.floor(res.values.incomeAfterTax[0] / 1000000000) * 1000000000, Math.ceil(res.values.incomeAfterTax[1] / 1000000000) * 1000000000],
+      slide: function (event, ui) {
+        $("#income-after-tax-from").text((ui.values[0]).toLocaleString("en"));
+        $("#income-after-tax-to").text((ui.values[1]).toLocaleString("en"));
+        if (ui.values[0] < 0 && $('#positive-income-after-tax').prop('checked')) {
+          $('#positive-income-after-tax').prop('checked', false)
+        }
+        createFilter();
+      }
+    });
+    $("#income-after-tax-from").text($("#slider-income-after-tax").slider("values", 0).toLocaleString("en"));
+    $("#income-after-tax-to").text($("#slider-income-after-tax").slider("values", 1).toLocaleString("en"));
+
+    $('#positive-income-after-tax').on('click', function() {
+      checked = $(this).prop('checked')
+      if (checked) {
+        
+        if ($( "#slider-income-after-tax" ).slider("values", 0) < 0 ) {
+          $( "#income-after-tax-from" ).text( "0" )
+          $( "#slider-income-after-tax" ).slider("values", 0, 0)
+        }
+        if ($( "#slider-income-after-tax" ).slider("values", 1) < 0 ) {
+          $( "#income-after-tax-to" ).text( "0" )
+          $( "#slider-income-after-tax" ).slider("values", 1, 0)
         }
       }      
       createFilter();
@@ -257,10 +286,18 @@ $( document ).ready(function() {
     $('#country-filter').selectpicker('refresh');
     $('#country-filter').on('change', createFilter);
 
+    // industry filter
+    res.values.industry.forEach((industry, i) => {
+      $('#industry-filter').append("<option>" + industry + "</option>")
+    });
+    $('#industry-filter').selectpicker({ size: "10" });
+    $('#industry-filter').selectpicker('refresh');
+    $('#industry-filter').on('change', createFilter);
+
     // column selection
     unselectCols = JSON.parse(localStorage.getItem("unselectCols"));
     if (unselectCols == null) {
-      unselectCols = [5,6,11,12,14] // set default if nothing is found in local storage
+      unselectCols = [1,5,12] // set default if nothing is found in local storage
       localStorage.setItem("unselectCols", JSON.stringify(unselectCols));
     }
     unselectCols.forEach((col,i) => {
@@ -374,11 +411,6 @@ $( document ).ready(function() {
       $("#p-drr3").text(filter.pDrr3 * 100 + "%")
     }
 
-    if (keys.includes("pDrr5")) {
-      $("#slider-drr5").slider("value", -filter.pDrr5 * 100);
-      $("#p-drr5").text(filter.pDrr5 * 100 + "%")
-    }
-
     if (keys.includes("revenue")) {
       if (filter.revenue[0] >= 0) {
         $("#positive-revenue").prop("checked", true);
@@ -390,15 +422,26 @@ $( document ).ready(function() {
       $("#revenue-to").text(filter.revenue[1].toLocaleString("en"));
     }
 
-    if (keys.includes("incomeNet")) {
-      if (filter.incomeNet[0] >= 0) {
-        $("#positive-income-net").prop("checked", true);
+    if (keys.includes("resultOfOperations")) {
+      if (filter.resultOfOperations[0] >= 0) {
+        $("#positive-result-of-operations").prop("checked", true);
       } else {
-        $("#positive-income-net").prop("checked", false);
+        $("#positive-result-of-operations").prop("checked", false);
       }
-      $("#slider-income-net").slider("values", filter.incomeNet);
-      $("#income-net-from").text(filter.incomeNet[0].toLocaleString("en"));
-      $("#income-net-to").text(filter.incomeNet[1].toLocaleString("en"));
+      $("#slider-result-of-operations").slider("values", filter.resultOfOperations);
+      $("#result-of-operations-from").text(filter.resultOfOperations[0].toLocaleString("en"));
+      $("#result-of-operations-to").text(filter.resultOfOperations[1].toLocaleString("en"));
+    }
+
+    if (keys.includes("incomeAfterTax")) {
+      if (filter.incomeAfterTax[0] >= 0) {
+        $("#positive-income-after-tax").prop("checked", true);
+      } else {
+        $("#positive-income-after-tax").prop("checked", false);
+      }
+      $("#slider-income-after-tax").slider("values", filter.incomeAfterTax);
+      $("#income-after-tax-from").text(filter.incomeAfterTax[0].toLocaleString("en"));
+      $("#income-after-tax-to").text(filter.incomeAfterTax[1].toLocaleString("en"));
     }
   }
 
@@ -414,7 +457,7 @@ $( document ).ready(function() {
       dataframe = $('#dataframe').DataTable();
       dataframe.clear();
       dataframe.rows.add(res.rows)
-      alignColumns(dataframe, [2,3,4,5,6,7,8,13,14,15], "text-align: right");
+      alignColumns(dataframe, [2,3,4,5,6,7,8,11,12], "text-align: right");
       dataframe.draw()
 
       if (Boolean(sessionStorage.getItem("reload")) && sessionStorage.getItem("lastupdate") < Date.parse(res.metadata.lastupdate)) {

@@ -55,16 +55,15 @@ function get_securities(c::AppController)
     
     res = Dict()
     res["rows"] = preparedata(filtered_df)
-    res["cols"] = ["Company", "ISIN", "Price-earnings ratio", "Price-book ratio", "Dividend-return ratio", "Dividend-return ratio (Avg 3)", "Dividend-return ratio (Avg 5)", "Revenue", "Net income", "Country", "Industry", "Sector", "Sub sector", "Share price (EUR)", "Dividend per share (EUR)", "Annual report"]
-    res["metadata"] = Dict("interval" => update_interval, "lastupdate" => lastupdate, "nrow" => nrow(filtered_df), "filtered" => filter != nothing)
+    res["cols"] = ["Company", "ISIN", "Price-earnings ratio", "Price-book ratio", "Dividend-return ratio", "Dividend-return ratio (Avg 3)", "Revenue", "Result of operations", "Income after tax", "Country", "Industry", "Share price (EUR)", "Annual report"]
+    res["metadata"] = Dict("interval" => update_interval, "lastupdate" => lastupdate, "nrow" => nrow(filtered_df), "filtered" => filter !== nothing)
     vals = Dict()
-    vals["revenue"] = [Int64(round(df.revenue |> skipmissing |> minimum, digits=0)), Int64(round(df.revenue |> skipmissing |> maximum, digits=0))]
-    vals["incomeNet"] = [Int64(round(df.incomeNet |> skipmissing |> minimum, digits=0)), Int64(round(df.incomeNet |> skipmissing |> maximum, digits=0))]
-    vals["priceEarningsRatio"] = [round(df.priceEarningsRatio |> skipmissing |> minimum, digits=2), round(df.priceEarningsRatio |> skipmissing |> maximum, digits=2)]
-    vals["priceBookRatio"] = [round(df.priceBookRatio |> skipmissing |> minimum, digits=2), round(df.priceBookRatio |> skipmissing |> maximum, digits=2)]
+    vals["revenue"] = [Int64(floor(df.revenue |> skipmissing |> minimum, digits=0)), Int64(ceil(df.revenue |> skipmissing |> maximum, digits=0))]
+    vals["resultOfOperations"] = [Int64(floor(df.resultOfOperations |> skipmissing |> minimum, digits=0)), Int64(ceil(df.resultOfOperations |> skipmissing |> maximum, digits=0))]
+    vals["incomeAfterTax"] = [Int64(floor(df.incomeAfterTax |> skipmissing |> minimum, digits=0)), Int64(ceil(df.incomeAfterTax |> skipmissing |> maximum, digits=0))]
+    vals["priceEarningsRatio"] = [floor(df.priceEarningsRatio |> skipmissing |> minimum, digits=2), ceil(df.priceEarningsRatio |> skipmissing |> maximum, digits=2)]
+    vals["priceBookRatio"] = [floor(df.priceBookRatio |> skipmissing |> minimum, digits=2), ceil(df.priceBookRatio |> skipmissing |> maximum, digits=2)]
     vals["industry"] = df.industry |> skipmissing |> unique |> Base.sort
-    vals["sector"] = df.sector |> skipmissing |> unique |> Base.sort
-    vals["subsector"] = df.subsector |> skipmissing |> unique |> Base.sort
     vals["country"] = df.country |> skipmissing |> unique |> Base.sort
     res["values"] = vals
     render(JSON, res)
@@ -128,19 +127,20 @@ end
 
 function preparedata(dataframe::DataFrame)
     df = deepcopy(dataframe)
-    df.dividendPerShare = map(x -> x === missing ? "" : Printf.@sprintf("%.2f", round(x, digits=2)), df.dividendPerShare)
     df.dividendReturnRatioLast = map(x -> x === missing ? "" : Printf.@sprintf("%.2f", round(x, digits=2)), df.dividendReturnRatioLast)
+    df.dividendReturnRatioAvg3 = map(x -> x === missing ? "" : Printf.@sprintf("%.2f", round(x, digits=2)), df.dividendReturnRatioAvg3)
     df.priceBookRatio = map(x -> x === missing ? "" : Printf.@sprintf("%.2f", round(x, digits=2)), df.priceBookRatio)
     df.priceEarningsRatio = map(x -> x === missing ? "" : Printf.@sprintf("%.2f", round(x, digits=2)), df.priceEarningsRatio)
     df.price = map(x -> x === missing ? "" : Printf.@sprintf("%.2f", round(x, digits=2)), df.price)
     df.revenue = map(x -> x === missing ? "" : format(Int64(round(x, digits=0)), commas=true), df.revenue)
-    df.incomeNet = map(x -> x === missing ? "" : format(Int64(round(x, digits=0)), commas=true), df.incomeNet)
+    df.resultOfOperations = map(x -> x === missing ? "" : format(Int64(round(x, digits=0)), commas=true), df.resultOfOperations)
+    df.incomeAfterTax = map(x -> x === missing ? "" : format(Int64(round(x, digits=0)), commas=true), df.incomeAfterTax)
 
     # transform names to hyperlinks
     df.security = map(row -> """<a href="$(row.url)" target="_blank">$(row.security)</a>""", eachrow(df))
 
     # put columns in correct sequence
-    df = df[:,[:security, :isin, :priceEarningsRatio, :priceBookRatio, :dividendReturnRatioLast, :dividendReturnRatioAvg3, :dividendReturnRatioAvg5, :revenue, :incomeNet, :country, :industry, :sector, :subsector, :price, :dividendPerShare, :year]]
+    df = df[:,[:security, :isin, :priceEarningsRatio, :priceBookRatio, :dividendReturnRatioLast, :dividendReturnRatioAvg3, :revenue, :resultOfOperations, :incomeAfterTax, :country, :industry, :price, :year]]
 
     data = map(eachrow(df)) do row
         collect(row)
@@ -157,7 +157,7 @@ end
 # apply security filter to security data frame
 function apply!(securities::DataFrame, filter::SecurityFilter)
     # filter categories
-    mapping_categorical = Dict("country" => :country)
+    mapping_categorical = Dict("country" => :country, "industry" => :industry)
     for (k,v) in mapping_categorical
         if haskey(filter.options, k)
             filter!(row -> row[v] in filter.options[k], securities)
@@ -165,7 +165,7 @@ function apply!(securities::DataFrame, filter::SecurityFilter)
     end
 
     # filter intervals
-    mapping_intervals = Dict("revenue" => :revenue, "incomeNet" => :incomeNet, "priceEarningsRatio" => :priceEarningsRatio, "priceBookRatio" => :priceBookRatio)
+    mapping_intervals = Dict("revenue" => :revenue, "resultOfOperations" => :resultOfOperations, "incomeAfterTax" => :incomeAfterTax, "priceEarningsRatio" => :priceEarningsRatio, "priceBookRatio" => :priceBookRatio)
     for (k,v) in mapping_intervals
         if haskey(filter.options, k)
             filter!(row -> row[v] !== missing ? row[v] >= filter.options[k][1] && row[v] <= filter.options[k][2] : false, securities)
@@ -185,7 +185,7 @@ function apply!(securities::DataFrame, filter::SecurityFilter)
     end
 
     # get higher than quantile
-    mapping_percentiles = Dict("pDrrl" => :dividendReturnRatioLast, "pDrr3" => :dividendReturnRatioAvg3, "pDrr5" => :dividendReturnRatioAvg5)
+    mapping_percentiles = Dict("pDrrl" => :dividendReturnRatioLast, "pDrr3" => :dividendReturnRatioAvg3)
     for (k,v) in mapping_percentiles
         if haskey(filter.options, k) && length(dfcopy[!,v] |> skipmissing |> collect) > 0
             threshold = quantile(dfcopy[!,v] |> skipmissing, filter.options[k])
@@ -202,7 +202,7 @@ function isvalid(filter::SecurityFilter)::Bool
         return false
     end
 
-    intervals = ["revenue", "incomeNet"]
+    intervals = ["revenue", "resultOfOperations", "incomeAfterTax"]
     interval_check = map(intervals) do i
         if haskey(dict, i) && !isinterval(dict[i])
             return false
@@ -214,7 +214,7 @@ function isvalid(filter::SecurityFilter)::Bool
         return false
     end
 
-    percentiles = ["pPer", "pPbr", "pDrrl", "pDrr3", "pDrr5"]
+    percentiles = ["pPer", "pPbr", "pDrrl", "pDrr3"]
     percentile_check = map(percentiles) do p
         if haskey(dict, p) && !ispercentile(dict[p])
             return false

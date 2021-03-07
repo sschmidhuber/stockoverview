@@ -11,9 +11,9 @@ Pkg.add([
 "UUIDs",
 "Formatting",
 "HTTP",
+"Query",
+"Redis",
 "Bukdu"
 ])
-
-Pkg.add(PackageSpec(url="https://github.com/JuliaDatabases/Redis.jl"))
 
 exit(0)

@@ -27,3 +27,8 @@ Manifest.toml
 data/
 *.log
 *.rdb
+
+
+# development environment
+*.code-workspace
+
