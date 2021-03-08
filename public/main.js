@@ -74,18 +74,24 @@ $( document ).ready(function() {
         let maxRevenue = $( "#slider-revenue" ).slider( "values", 1 )
         if (minRevenue > res.values.revenue[0] || maxRevenue < res.values.revenue[1]) {
           filter.revenue = [minRevenue, maxRevenue]
+        } else {
+          delete filter.revenue
         }
 
         let minResultOfOperations = $( "#slider-result-of-operations" ).slider( "values", 0 )
         let maxResultOfOperations = $( "#slider-result-of-operations" ).slider( "values", 1 )
         if (minResultOfOperations > res.values.resultOfOperations[0] || maxResultOfOperations < res.values.resultOfOperations[1]) {
           filter.resultOfOperations = [minResultOfOperations, maxResultOfOperations]
+        } else {
+          delete filter.resultOfOperations
         }
 
         let minIncomeAfterTax = $( "#slider-income-after-tax" ).slider( "values", 0 )
         let maxIncomeAfterTax = $( "#slider-income-after-tax" ).slider( "values", 1 )
         if (minIncomeAfterTax > res.values.incomeAfterTax[0] || maxIncomeAfterTax < res.values.incomeAfterTax[1]) {
           filter.incomeAfterTax = [minIncomeAfterTax, maxIncomeAfterTax]
+        } else {
+          delete filter.incomeAfterTax
         }
         
         let pPer = $( "#slider-per" ).slider( "value" )
@@ -114,8 +120,11 @@ $( document ).ready(function() {
             localStorage.setItem("filterOptions", JSON.stringify(filter));
             updatedataframe(res.filterId);
           });
+        } else {
+          localStorage.removeItem("filterId")
+          localStorage.removeItem("filterOptions")
+          updatedataframe();
         }
-        updatedataframe();
       }, 2000)
     };
 
