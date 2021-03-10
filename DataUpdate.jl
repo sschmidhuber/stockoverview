@@ -65,7 +65,7 @@ function update_db(concurrent_execution = false)
             if security !== nothing
                 push!(df, security)
             end
-            sleep(1) # to ensure low request frequency on server
+            sleep(0.3) # to ensure low request frequency on server
         end
     end
 
