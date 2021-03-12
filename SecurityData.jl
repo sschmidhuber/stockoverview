@@ -65,8 +65,9 @@ function fetchsecurity(isin::String, exchangerates::Dict)::Union{Security,Nothin
         end
 
         price_earnings_ratio, price_book_ratio, dividend_return_ratio_last, dividend_return_ratio_avg3 = calculatevalues(header["price"], fundamental_data, balance_data, outstanding_shares)
-    catch 
+    catch e
         @warn "processing of ISIN: $isin failed"
+        showerror(stdout, e)
         return nothing
     end
     
@@ -89,7 +90,7 @@ function fetchheader(isin)::Union{Dict,Nothing}
     header["price"] = haskey(source, "price") ? source["price"] : missing
     header["change_abs"] = haskey(source, "changeAbsolute") ? source["changeAbsolute"] : missing
     header["close"] = haskey(source, "close") ? source["close"] : missing
-    header["bid_time"] = haskey(source, "bidDate") ? DateTime(source["bidDate"], ISODate) : missing
+    header["bid_time"] = haskey(source, "bidDate") ? DateTime(source["bidDate"][1:19], ISODate) : missing
     header["currency"] = haskey(source, "currency") ? source["currency"] : missing
     header["wkn"] = haskey(source, "wkn") ? source["wkn"] : missing
 
