@@ -188,7 +188,7 @@ function apply!(securities::DataFrame, filter::SecurityFilter)
     mapping_percentiles = Dict("pDrrl" => :dividendReturnRatioLast, "pDrr3" => :dividendReturnRatioAvg3)
     for (k,v) in mapping_percentiles
         if haskey(filter.options, k) && length(dfcopy[!,v] |> skipmissing |> collect) > 0
-            threshold = quantile(dfcopy[!,v] |> skipmissing, filter.options[k])
+            threshold = quantile(dfcopy[!,v] |> skipmissing, 1 - filter.options[k])
             filter!(row -> row[v] !== missing ? row[v] >= threshold : false, securities)
         end
     end
