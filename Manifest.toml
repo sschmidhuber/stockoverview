@@ -9,11 +9,11 @@ version = "1.3.0"
 [[Base64]]
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 
-[[Bukdu]]
-deps = ["Dates", "Documenter", "HTTP", "JSON", "Logging", "MbedTLS", "Sockets", "URIParser"]
-git-tree-sha1 = "dc9c7c94f59ebc090d199289cd85bca9909d33c2"
-uuid = "3e78a19a-cc83-51d8-955b-515f39fd7955"
-version = "0.4.16"
+[[BinaryProvider]]
+deps = ["Libdl", "Logging", "SHA"]
+git-tree-sha1 = "ecdec412a9abc8db54c0efc5548c64dfce072058"
+uuid = "b99e7846-7c00-51b0-8f62-c81ae34c0232"
+version = "0.5.10"
 
 [[CSV]]
 deps = ["Dates", "Mmap", "Parsers", "PooledArrays", "SentinelArrays", "Tables", "Unicode"]
@@ -43,6 +43,11 @@ version = "3.25.0"
 git-tree-sha1 = "3f71217b538d7aaee0b69ab47d9b7724ca8afa0d"
 uuid = "a8cc5b0e-0ffa-5ad4-8c14-923d3ee1735f"
 version = "4.0.4"
+
+[[DBInterface]]
+git-tree-sha1 = "441a377eb7f994cd454b7c45f29f911ce0d42ce0"
+uuid = "a10d1c49-ce27-4219-8d33-6db1a4562965"
+version = "2.4.0"
 
 [[DataAPI]]
 git-tree-sha1 = "dfb3b7e89e395be1e25c2ad6d7690dc29cc53b1d"
@@ -84,18 +89,6 @@ uuid = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 deps = ["Random", "Serialization", "Sockets"]
 uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 
-[[DocStringExtensions]]
-deps = ["LibGit2", "Markdown", "Pkg", "Test"]
-git-tree-sha1 = "50ddf44c53698f5e784bbebb3f4b21c5807401b1"
-uuid = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
-version = "0.8.3"
-
-[[Documenter]]
-deps = ["Base64", "Dates", "DocStringExtensions", "IOCapture", "InteractiveUtils", "JSON", "LibGit2", "Logging", "Markdown", "REPL", "Test", "Unicode"]
-git-tree-sha1 = "3ebb967819b284dc1e3c0422229b58a40a255649"
-uuid = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
-version = "0.26.3"
-
 [[FileWatching]]
 uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
 
@@ -114,12 +107,6 @@ deps = ["Base64", "Dates", "IniFile", "MbedTLS", "NetworkOptions", "Sockets", "U
 git-tree-sha1 = "c9f380c76d8aaa1fa7ea9cf97bddbc0d5b15adc2"
 uuid = "cd3eb016-35fb-5094-929b-558a96fad6f3"
 version = "0.9.5"
-
-[[IOCapture]]
-deps = ["Logging"]
-git-tree-sha1 = "377252859f740c217b936cebcd918a44f9b53b59"
-uuid = "b5f81e59-6552-4d32-b1f0-c071b021bf89"
-version = "0.1.1"
 
 [[IniFile]]
 deps = ["Test"]
@@ -284,12 +271,6 @@ uuid = "3fa0cd96-eef1-5676-8a61-b3b8758bbffb"
 deps = ["Serialization"]
 uuid = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 
-[[Redis]]
-deps = ["DataStructures", "Dates", "Sockets"]
-git-tree-sha1 = "6b3c136222b08ae0c71657f2501c6741782a1ad1"
-uuid = "0cf705f9-a9e2-50d1-a699-2b372a39b750"
-version = "1.0.0"
-
 [[Reexport]]
 git-tree-sha1 = "57d8440b0c7d98fc4f889e478e80f268d534c9d5"
 uuid = "189a3867-3050-52da-a836-e630ba90ab69"
@@ -309,6 +290,18 @@ version = "3.1.14"
 
 [[SHA]]
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
+
+[[SQLite]]
+deps = ["BinaryProvider", "DBInterface", "Dates", "Libdl", "Random", "SQLite_jll", "Serialization", "Tables", "Test", "WeakRefStrings"]
+git-tree-sha1 = "3719fb1944127473cb48df8a009ff2322f237de8"
+uuid = "0aa819cd-b072-5ff4-a722-6bc24af294d9"
+version = "1.1.3"
+
+[[SQLite_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg", "Zlib_jll"]
+git-tree-sha1 = "30c4dc94e2a00f4f02ea039df36067b32e187f3c"
+uuid = "76ed43ae-9a5d-5a62-8c75-30186b810ce8"
+version = "3.34.0+0"
 
 [[SentinelArrays]]
 deps = ["Dates", "Random"]
@@ -339,11 +332,6 @@ uuid = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 [[Statistics]]
 deps = ["LinearAlgebra", "SparseArrays"]
 uuid = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
-
-[[StringBuilders]]
-git-tree-sha1 = "4bb4facc29d6b2275043151f71c330edb647696b"
-uuid = "db12335b-fddc-5e1b-b0ee-42071d21ae50"
-version = "0.2.3"
 
 [[StructTypes]]
 deps = ["Dates", "UUIDs"]
@@ -379,12 +367,6 @@ version = "1.3.2"
 deps = ["Distributed", "InteractiveUtils", "Logging", "Random"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
-[[URIParser]]
-deps = ["Unicode"]
-git-tree-sha1 = "53a9f49546b8d2dd2e688d216421d050c9a31d0d"
-uuid = "30578b45-9adc-5946-b283-645ec420af67"
-version = "0.4.1"
-
 [[URIs]]
 git-tree-sha1 = "7855809b88d7b16e9b029afd17880930626f54a2"
 uuid = "5c2747f8-b7ea-4ff2-ba2e-563bfd36b1d4"
@@ -396,6 +378,12 @@ uuid = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 
 [[Unicode]]
 uuid = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
+
+[[WeakRefStrings]]
+deps = ["DataAPI", "Random", "Test"]
+git-tree-sha1 = "28807f85197eaad3cbd2330386fac1dcb9e7e11d"
+uuid = "ea10d353-3f73-51f8-a26c-33c1cb351aa5"
+version = "0.6.2"
 
 [[XML2_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Libiconv_jll", "Pkg", "Zlib_jll"]
