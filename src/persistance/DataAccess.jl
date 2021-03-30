@@ -5,10 +5,52 @@ using DataFrames
 using Dates
 using ..Model
 
-DB = "data/stockoverview.sqlite"
+DB = "../data/stockoverview.sqlite"
 
-# store the given exchange rates to DB if they don't exist already
-function store_exchange_rates(exchange_rates::EuroExchangeRates)
+# insert the given company to DB or update if it exists already
+function insert_update_company(company::Company)
+    db = SQLite.DB(DB)
+    n = DBInterface.execute(db, "select * from company where lei = '$(company.lei)';") |> DataFrame  |> nrow
+    if n == 0
+        stmt = SQLite.Stmt(db, "INSERT INTO company (lei, name, address, city, country, postal_code) VALUES (?,?,?,?,?,?);")
+        DBInterface.execute(stmt, [company.lei, company.name, company.location.address, company.location.city, company.location.country, company.location.postal_code])
+    else
+        stmt = SQLite.Stmt(db, "UPDATE company SET lei = ?, name = ?, address = ?, city = ?, country = ?, postal_code = ? where lei = ?;")
+        DBInterface.execute(stmt, [company.lei, company.name, company.location.address, company.location.city, company.location.country, company.location.postal_code, company.lei])
+    end
+end
+
+
+function load_companies(companies::Vector{Company})
+    df = DataFrame(:lei => [], :name => [], :address => [], :city => [], :country => [], :postal_code => [])
+
+    foreach(companies) do company
+        push!(df, (lei = company.lei, name = company.name, address = company.location.address, city = company.location.city, country = company.location.country, postal_code = company.location.postal_code))
+    end
+
+    db = SQLite.DB(DB)
+    df |> SQLite.load!(db, "company")
+end
+
+function insert_companies(companies::Vector{Company})
+    db = SQLite.DB(DB)
+    stmt = SQLite.Stmt(db, "INSERT INTO company (lei, name, address, city, country, postal_code) VALUES (?,?,?,?,?,?);")
+
+    foreach(companies) do company
+        try
+            DBInterface.execute(stmt, [company.lei, company.name, company.location.address, company.location.city, company.location.country, company.location.postal_code])
+        catch e
+            @warn "failed to insert $(company.lei) : $(company.name)"
+            showerror(stdout, e)
+            print("\n")
+            GC.gc()
+        end
+    end
+end
+
+
+# insert the given exchange rates to DB if they don't exist already
+function insert_exchange_rates(exchange_rates::EuroExchangeRates)
     db = SQLite.DB(DB)
     n = DBInterface.execute(db, "select * from euro_exchange_rates where date = $(exchange_rates.date);") |> DataFrame |> nrow
     if n != 0
