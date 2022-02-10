@@ -2,6 +2,8 @@
 
 ## idempotent setup script for Linux systems
 
+# TODO: detect and create swap file on demand
+
 USER=$(whoami)
 UNPRIVILEGED_USER=$(logname)
 if [[ $USER != "root" ]]; then
@@ -18,7 +20,7 @@ fi
 
 if [[ $ID == "debian" || $NAME == "ubuntu" ]]; then
     echo "\"$PRETTY_NAME\" detected"
-    apt install julia redis sed nano htop
+    apt install -y julia redis sed nano htop
 elif [[ $ID == "fedora" ]]; then
     echo "\"$PRETTY_NAME\" detected"
     dnf install julia redis sed nano htop

@@ -2,7 +2,7 @@ module Model
 
 using Dates
 
-export Location, Company, EuroExchangeRates
+export Location, Company, Security, EuroExchangeRates
 
 
 struct Location
@@ -18,6 +18,19 @@ struct Company
     name::String
     location::Location
 end
+
+
+struct Security
+    isin::String
+    symbol::Union{String,Missing}
+    wkn::Union{String,Missing}
+    lei::Union{String,Missing}
+    name::Union{String,Missing}
+    type::Union{String, Missing}
+end
+
+Security(isin, wkn, name, type) = Security(isin, missing, wkn, missing, name, type)
+Security(isin) = Security(isin, missing, missing, missing)
 
     
 struct EuroExchangeRates

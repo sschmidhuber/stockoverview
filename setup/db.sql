@@ -15,3 +15,14 @@ CREATE TABLE "company" (
 	"postal_code"	TEXT,
 	PRIMARY KEY("lei")
 ) WITHOUT ROWID;
+
+
+CREATE TABLE "security" (
+	"isin"	TEXT,
+	"symbol"	TEXT,
+	"wkn"	TEXT,
+	"lei"	TEXT,
+	"name"	TEXT,
+	"type"	TEXT,
+	PRIMARY KEY("isin")
+) WITHOUT ROWID;

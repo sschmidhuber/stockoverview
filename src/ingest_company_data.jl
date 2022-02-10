@@ -8,16 +8,115 @@ using CSV
 using DataFrames
 using StringBuilders
 using LightXML
+using Dates
+using Downloads
+using HTTP
+using JSON
+using Query
 
 include("service/Model.jl")
 using .Model
+
+include("service/DataIngestion.jl")
+using .DataIngestion
 
 include("persistance/DataAccess.jl")
 using .DataAccess
 
 
-# TODO: download source files, extract, cleanup
+function download_source_data()
+    @info "download source data"
+    working_date = Dates.format(today() - Dates.Day(1), DateFormat("yyyymmdd"))
+    lei_url = "https://leidata.gleif.org/api/v1/concatenated-files/lei2/$working_date/zip"
 
+    # retrieve ISIN-LEI mapping URL
+    isin_mapping_url = nothing
+    try
+        res = HTTP.request("GET", "https://isinmapping.gleif.org/api/v2/isin-lei")
+        source = JSON.parse(res.body |> String, null=missing)
+        isin_mapping_url = source["data"][1]["attributes"]["downloadLink"]
+    catch e
+        showerror(stderr, e)
+        println("failed to retrieve \"isin_mapping_url\"")
+        exit(1)
+    end
+
+    # download source files
+    LEI_zip = nothing
+    try
+        LEI_zip = Downloads.download(lei_url)        
+    catch e
+        showerror(stderr, e)
+        println("failed to download LEI file")
+        exit(1)
+    end
+
+    ISIN_mapping_zip = nothing
+    try
+        ISIN_mapping_zip = Downloads.download(isin_mapping_url)
+    catch e
+        showerror(stderr, e)
+        println("failed to download ISIN mapping file")
+        exit(1)
+    end
+    
+    return LEI_zip, ISIN_mapping_zip
+end
+
+
+function extract_source_data(LEI_zip, ISIN_mapping_zip)
+    @info "extract source data"
+    LEI_xml, ISIN_mapping_csv = nothing, nothing
+
+    extract_lei = `unzip -o -qq $LEI_zip`
+    run(extract_lei)
+    extract_isin = `unzip -o -qq $ISIN_mapping_zip`
+    run(extract_isin)
+
+    try
+        LEI_xml = readdir() |> @filter(x -> contains(x, r".+-gleif-concatenated-file-lei2.xml")) |> first
+        ISIN_mapping_csv = readdir() |> @filter(x -> contains(x, r"ISIN_LEI_.+.csv")) |> first
+    catch e
+        showerror(stderr, e)
+        println("failed to extract source files")
+        exit(1)
+    end
+
+
+    return LEI_xml, ISIN_mapping_csv    
+end
+
+
+# retrieve security information
+function retrieve_security_information(ISIN_mapping_csv)
+    @info "check ISINs for available information"
+    securities = DataAccess.get_securities()
+    checked_isins = securities.isin
+    df = CSV.read(ISIN_mapping_csv, DataFrame)
+    isins = setdiff(df.ISIN, checked_isins)
+
+    @info "$(length(checked_isins)) ISINs already checked, $(length(isins)) to be processed"    
+
+    foreach(isins) do isin
+        security = DataIngestion.fetchsecurityheader(String(isin))
+        DataAccess.insert_security(security)
+
+        sleep(0.3)
+    end
+end
+
+
+# clean up temporary files
+function cleanup(LEI_zip, ISIN_mapping_zip, LEI_xml, ISIN_mapping_csv)
+    @info "remove temporary files"
+    rm(LEI_zip)
+    rm(ISIN_mapping_zip)
+    rm(LEI_xml)
+    rm(ISIN_mapping_csv)
+end
+
+
+# parse XML representation and return company struct
 function init_xml2company()
     @info "load country code mapping file"
     df = CSV.read("../data/country_codes.csv", DataFrame)
@@ -61,9 +160,10 @@ function init_xml2company()
 end
 
 
-function init_has_isin()
+# return true if a given LEI is found in ISIN mapping file
+function init_has_isin(ISIN_mapping_csv::String)
     @info "load ISIN mapping file"
-    df = CSV.read("../data/ISIN_LEI_20210314.csv", DataFrame)
+    df = CSV.read(ISIN_mapping_csv, DataFrame)
     leis = deepcopy(df.LEI)
     unique!(leis)
     df = nothing
@@ -76,9 +176,9 @@ function init_has_isin()
 end
 
 
-function init_process_record()
+function init_process_record(ISIN_mapping_csv::String)
     companies = Vector{Company}()
-    has_isin = init_has_isin()
+    has_isin = init_has_isin(ISIN_mapping_csv)
     xml2company = init_xml2company()
     lk = ReentrantLock()
     company_counter = 0
@@ -90,34 +190,39 @@ function init_process_record()
             lock(lk) do 
                 push!(companies, company)
 
-                if length(companies) == 5000
-                    DataAccess.load_companies(companies)
-                    company_counter += 5000
+                #=
+                if length(companies) == 1000
+                    DataAccess.insert_update_company(companies)
+                    company_counter += 1000
                     @info string(company_counter) * " companies stored to DB"
                     empty!(companies)
-                end                
+                end          
+                =#
             end
         end
     end
 
     function flush()
-        DataAccess.insert_companies(companies)
-        company_counter += length(companies)
-        @info string(company_counter) * " companies stored to DB"
+        @info "write " * string(length(companies)) * " records to DB"
+        DataAccess.insert_company(companies)
+        #company_counter += length(companies)
+        #@info string(company_counter) * " companies stored to DB"
     end
 
     return process_record, flush
 end
 
 
-function read_source_file(file::String, open_tag::String, close_tag::String)
+function read_source_file(LEI_xml::String, ISIN_mapping_csv::String)
     @info "read source file"
+    open_tag = "<lei:LEIRecord>"
+    close_tag = "</lei:LEIRecord>"
     element = false
     sb = nothing
     record_counter = 0
-    process_record, flush = init_process_record()
+    process_record, flush = init_process_record(ISIN_mapping_csv)
 
-    open(file) do io
+    open(LEI_xml) do io
         while !eof(io)
             line = readline(io; keep=true)
             stripped = strip(line)
@@ -147,11 +252,15 @@ end
 
 
 function main()
-    SOURCE_FILE = "../data/20210314-gleif-concatenated-file-lei2.xml"
-    OPEN_TAG = "<lei:LEIRecord>"
-    CLOSE_TAG = "</lei:LEIRecord>"
+    working_directory = pwd()
+    cd(@__DIR__)
 
-    read_source_file(SOURCE_FILE, OPEN_TAG, CLOSE_TAG)
+    # LEI_zip, ISIN_mapping_zip = download_source_data()
+    #LEI_xml, ISIN_mapping_csv = "20220121-gleif-concatenated-file-lei2.xml", "ISIN_LEI_20220122.csv" #extract_source_data(LEI_zip, ISIN_mapping_zip)
+    #read_source_file(LEI_xml, ISIN_mapping_csv)    
+    #cleanup(LEI_zip, ISIN_mapping_zip, LEI_xml, ISIN_mapping_csv)
+
+    cd(working_directory)
     @info "successfully completed"
 end
 

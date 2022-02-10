@@ -7,9 +7,49 @@ using ..Model
 
 DB = "../data/stockoverview.sqlite"
 
-# insert the given company to DB or update if it exists already
+# get security table as DataFrame
+function get_securities()
+    try
+        db = SQLite.DB(DB)
+        rs = DBInterface.execute(db, "SELECT * FROM security;") |> DataFrame
+    catch
+        @warn "couldn't read securities from DB"
+    end
+        
+end
+
+
+# insert the given security to DB
+function insert_security(security::Security)
+    db = SQLite.DB(DB)
+    stmt = SQLite.Stmt(db, "INSERT INTO security (isin, symbol, wkn, lei, name, type) VALUES (?,?,?,?,?,?);")
+
+    try
+        DBInterface.execute(stmt, [security.isin, security.symbol, security.wkn, security.lei, security.name, security.type])
+    catch e
+        @warn "failed to insert $(security.isin) : $(security.name)"
+        showerror(stdout, e)
+        print("\n")
+        GC.gc()
+    end
+end
+
+# insert the given company to DB or update if a record with the same LEI exists already
 function insert_update_company(company::Company)
     db = SQLite.DB(DB)
+    insert_update_company_common(db, company)
+end
+
+# insert a vector of companies to DB or update if a record with the same LEI exists already
+function insert_update_company(companies::Vector{Company})
+    db = SQLite.DB(DB)
+    for company in companies
+        insert_update_company_common(db, company)
+    end
+end
+
+# the common part of insert_update_company methods, not supposed to be used from outside the module
+function insert_update_company_common(db, company)
     n = DBInterface.execute(db, "select * from company where lei = '$(company.lei)';") |> DataFrame  |> nrow
     if n == 0
         stmt = SQLite.Stmt(db, "INSERT INTO company (lei, name, address, city, country, postal_code) VALUES (?,?,?,?,?,?);")
@@ -20,7 +60,20 @@ function insert_update_company(company::Company)
     end
 end
 
+# insert vector of companies, thow error if insert fails
+function insert_company(companies::Vector{Company})
+    db = SQLite.DB(DB)
+    stmt = SQLite.Stmt(db, "INSERT INTO company (lei, name, address, city, country, postal_code) VALUES (?,?,?,?,?,?);")
+    for company in companies
+        try
+            DBInterface.execute(stmt, [company.lei, company.name, company.location.address, company.location.city, company.location.country, company.location.postal_code]) 
+        catch e
+            @warn "failed to insert company: " * company.name * " (LEI: " * company.lei * ")"
+        end
+    end
+end
 
+# insert a vector of companies into DB
 function load_companies(companies::Vector{Company})
     df = DataFrame(:lei => [], :name => [], :address => [], :city => [], :country => [], :postal_code => [])
 
@@ -32,6 +85,7 @@ function load_companies(companies::Vector{Company})
     df |> SQLite.load!(db, "company")
 end
 
+# insert a vector of companies into DB (but implemented as loop)
 function insert_companies(companies::Vector{Company})
     db = SQLite.DB(DB)
     stmt = SQLite.Stmt(db, "INSERT INTO company (lei, name, address, city, country, postal_code) VALUES (?,?,?,?,?,?);")
@@ -47,7 +101,6 @@ function insert_companies(companies::Vector{Company})
         end
     end
 end
-
 
 # insert the given exchange rates to DB if they don't exist already
 function insert_exchange_rates(exchange_rates::EuroExchangeRates)
