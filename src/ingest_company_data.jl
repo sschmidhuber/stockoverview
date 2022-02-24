@@ -20,7 +20,7 @@ using .Model
 include("service/DataIngestion.jl")
 using .DataIngestion
 
-include("persistance/DataAccess.jl")
+include("persistence/DataAccess.jl")
 using .DataAccess
 
 
@@ -259,6 +259,8 @@ function main()
     #LEI_xml, ISIN_mapping_csv = "20220121-gleif-concatenated-file-lei2.xml", "ISIN_LEI_20220122.csv" #extract_source_data(LEI_zip, ISIN_mapping_zip)
     #read_source_file(LEI_xml, ISIN_mapping_csv)    
     #cleanup(LEI_zip, ISIN_mapping_zip, LEI_xml, ISIN_mapping_csv)
+
+    retrieve_security_information("ISIN_LEI_20220122.csv")
 
     cd(working_directory)
     @info "successfully completed"
