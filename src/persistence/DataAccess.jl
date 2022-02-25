@@ -103,22 +103,22 @@ function insert_companies(companies::Vector{Company})
 end
 
 # insert the given exchange rates to DB if they don't exist already
-function insert_exchange_rates(exchange_rates::EuroExchangeRates)
+function insert_exchange_rate(exchange_rate::EuroExchangeRates)
     db = SQLite.DB(DB)
-    n = DBInterface.execute(db, "select * from euro_exchange_rates where date = $(exchange_rates.date);") |> DataFrame |> nrow
+    n = DBInterface.execute(db, "select * from exchange_rate where date = $(exchange_rate.date);") |> DataFrame |> nrow
     if n != 0
-        stmt = SQLite.Stmt(db, "INSERT INTO euro_exchange_rates (date, currency, rate) VALUES (?,?,?);")
+        stmt = SQLite.Stmt(db, "INSERT INTO exchange_rate (date, currency, rate) VALUES (?,?,?);")
     
-        foreach(exchange_rates.rates |> keys) do currency
-            DBInterface.execute(stmt, [exchange_rates.date |> string, currency, exchange_rates.rates[currency]])
+        foreach(exchange_rate.rates |> keys) do currency
+            DBInterface.execute(stmt, [exchange_rate.date |> string, currency, exchange_rate.rates[currency]])
         end
     end
 end
 
 # returns latest available euro exchange rates
-function get_exchange_rates()::Union{EuroExchangeRates,Nothing}
+function get_exchange_rate()::Union{EuroExchangeRates,Nothing}
     db = SQLite.DB(DB)
-    rs = DBInterface.execute(db, "select * from euro_exchange_rates where date = (select max(date) from euro_exchange_rates);") |> DataFrame
+    rs = DBInterface.execute(db, "select * from exchange_rate where date = (select max(date) from exchange_rate);") |> DataFrame
 
     if nrow(rs) == 0
         # not exchange rates available
