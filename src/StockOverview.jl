@@ -2,6 +2,8 @@
 
 module StockOverview
 
+cd(@__DIR__)
+
 include("service/Model.jl")
 using .Model
 
@@ -11,6 +13,9 @@ using .Scheduler
 include("service/DataIngestion.jl")
 using .DataIngestion
 
+if haskey(ENV, "database") == false
+    ENV["database"] = "production.sqlite"
+end
 include("persistence/DataAccess.jl")
 using .DataAccess
 

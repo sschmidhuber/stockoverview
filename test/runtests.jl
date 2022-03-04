@@ -1,13 +1,20 @@
-using StockOverview
 using Test
 using Dates
 
+ENV["database"] = "test.sqlite"
+
+using StockOverview
+
+@testset "Data Access" begin
+    file = DataAccess.getdbfile()
+    @test isfile(file)
+end
 
 @testset "Data Ingestion" begin
     security = DataIngestion.fetchsecurityheader("DE0008404005")
     @test security isa Model.Security
     @test security.name == "Allianz"
-    security = DataIngestion.fetchsecurityheader("vinvalid ISIN")
+    security = DataIngestion.fetchsecurityheader("invalid ISIN")
     @test security isa Model.Security
     @test security.name === missing
 

@@ -5,7 +5,14 @@ using DataFrames
 using Dates
 using ..Model
 
-DB = "../data/stockoverview.sqlite"
+DB = "data/$(ENV["database"])"
+
+"""
+return string to database file
+"""
+function getdbfile()
+    return DB
+end
 
 # get security table as DataFrame
 function get_securities()
