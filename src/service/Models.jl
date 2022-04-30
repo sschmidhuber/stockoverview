@@ -1,4 +1,4 @@
-module Model
+module Models
 
 using Dates
 

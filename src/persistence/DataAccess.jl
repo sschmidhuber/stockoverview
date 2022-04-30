@@ -3,7 +3,8 @@ module DataAccess
 using SQLite
 using DataFrames
 using Dates
-using ..Model
+
+using ..Models
 
 DB = "data/$(ENV["database"])"
 

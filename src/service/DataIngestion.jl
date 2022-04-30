@@ -6,8 +6,7 @@ using LightXML
 using DataFrames
 using Dates
 
-
-using ..Model
+using ..Models
 
 #=
 options for retrieving data
