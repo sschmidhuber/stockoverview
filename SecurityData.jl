@@ -119,28 +119,21 @@ end
 
 # number of outstanding shares
 function fetchos(isin)::Int
-    html = nothing
+    source = Dict()
     outstanding_shares = 0
 
     try
-        res = HTTP.request("GET", "https://www.onvista.de/aktien/$isin")
-        html = parsehtml(res.body |> String)
+        res = HTTP.request("GET", "https://api.onvista.de/api/v1/stocks/ISIN:$isin/snapshot")
+        source = JSON.parse(res.body |> String, null=missing)
     catch
-    throw(DataRetrievalError(isin, "number of outstanding shares couldn't be retrieved", "https://www.onvista.de/aktien/$isin"))
+        throw(DataRetrievalError(isin, "number of outstanding shares couldn't be retrieved", "https://api.onvista.de/api/v1/stocks/ISIN:$isin/snapshot"))
     end
 
-    try
-        metrics_container = sel".kennzahlen-container"
-        metrics_html = eachmatch(metrics_container, html.root) |> first
-
-        market_table = sel".MARKT"
-        market_html = eachmatch(market_table, metrics_html) |> first
-
-        tabledata = sel"td"
-        outstanding_shares = parse(Int, replace(replace(eachmatch(tabledata, market_html)[2].children[1].text, "." => ""), " Stk" => ""))
+    try        
+        outstanding_shares = source["stocksFigure"]["numSharesCompany"] |> Int
     catch
         throw(DataRetrievalError(isin, "error while parsing HTML response", "https://www.onvista.de/aktien/$isin"))
-        end
+    end
 
     return outstanding_shares
 end
