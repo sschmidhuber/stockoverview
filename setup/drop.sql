@@ -1,0 +1,10 @@
+DROP TABLE "exchange_rate";
+DROP TABLE "annual_report";
+DROP TABLE "dividend";
+DROP TABLE "price";
+DROP TABLE "index_security";
+DROP TABLE "stock_index";
+DROP TABLE "security";
+DROP TABLE "schedule";
+DROP TABLE "industry";
+DROP TABLE "company";
