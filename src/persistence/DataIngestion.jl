@@ -21,9 +21,9 @@ Run the data pipeline from raw to prepared layer.
 function execute_datapipeline()
     ingest_date = today()
     #download_raw_data(ingest_date)
-    #extract_source_data(ingest_date)
+    #extract_raw_data(ingest_date)
     #transform_company_data(ingest_date)
-    copy_isin_mapping(ingest_date)
+    #copy_isin_mapping(ingest_date)
 end
 
 
@@ -82,7 +82,7 @@ end
 
 Extract zip files in raw layer.
 """
-function extract_source_data(ingest_date::Date)
+function extract_raw_data(ingest_date::Date)
     @info "extract source data"
     directory = "../data/raw/$ingest_date"
     extract_lei = `unzip -o -qq $directory/company_data.zip -d $directory`
