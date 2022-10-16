@@ -1,4 +1,4 @@
-module DataIngestion
+module DataRetrieval
 
 using HTTP
 using JSON
@@ -7,6 +7,8 @@ using DataFrames
 using Dates
 
 using ..Models
+
+export fetchexchangerates, fetchsecurityheader
 
 #=
 options for retrieving data

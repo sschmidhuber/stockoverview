@@ -2,6 +2,8 @@
 
 module StockOverview
 
+using Dates, Downloads, HTTP, JSON
+
 cd(@__DIR__)
 
 include("service/Models.jl")
@@ -9,13 +11,16 @@ include("service/Models.jl")
 include("service/Scheduler.jl")
 using .Scheduler
 
-include("service/DataIngestion.jl")
-using .DataIngestion
+include("service/DataRetrieval.jl")
+using .DataRetrieval
 
 ENV["database"] = "production.sqlite"
-include("persistence/DataAccess.jl")
-using .DataAccess
+include("persistence/DBAccess.jl")
+using .DBAccess
 
-export Model, Scheduler, DataIngestion, DataAccess
+include("persistence/DataIngestion.jl")
+using .DataIngestion
+
+export Model, Scheduler, DataRetrieval, DBAccess, DataIngestion
 
 end # module
