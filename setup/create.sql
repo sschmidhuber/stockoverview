@@ -90,9 +90,22 @@ CREATE TABLE "annual_report" (
 	"equity"	INTEGER,
 	"total_liabilities"	INTEGER,
 	"total_assets"	INTEGER,
+	"free_cashflow"	INTEGER,
 	"currency"	TEXT,
 	"employees"	INTEGER,
 	PRIMARY KEY("lei","year")
+) WITHOUT ROWID;
+
+
+CREATE TABLE "metrics" (
+	"isin"	TEXT,
+	"market_cap"	INTEGER,
+	"price_earning_ratio"	REAL,
+	"price_book_ratio"	REAL,
+	"dividend_return_ratio"	REAL,
+	"dividend_return_ratio_avg3"	REAL,
+	"price_cashflow_ratio" REAL,
+	PRIMARY KEY("isin")
 ) WITHOUT ROWID;
 
 

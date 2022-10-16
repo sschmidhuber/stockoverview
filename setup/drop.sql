@@ -1,3 +1,4 @@
+DROP TABLE "metrics";
 DROP TABLE "exchange_rate";
 DROP TABLE "annual_report";
 DROP TABLE "dividend";
