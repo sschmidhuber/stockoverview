@@ -2,8 +2,6 @@
 
 module StockOverview
 
-using Dates, Downloads, HTTP, JSON
-
 cd(@__DIR__)
 
 include("service/Models.jl")

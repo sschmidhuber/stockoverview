@@ -4,32 +4,40 @@ using Dates
 using Downloads
 using HTTP
 using JSON
+using StringBuilders
+using LightXML
+using DataFrames
+using CSV
+using Query
 
 export execute_datapipeline
 
 
 """
     execute_datapipeline()
-
+    
 Run the data pipeline from raw to prepared layer.
 """
 function execute_datapipeline()
-    download_raw_data()
+    ingest_date = today()
+    #download_raw_data(ingest_date)
+    #extract_source_data(ingest_date)
+    #transform_company_data(ingest_date)
+    copy_isin_mapping(ingest_date)
 end
 
 
 """
     download_raw_data()
-
+    
 Download and store raw company and ISIN data from data providers to raw layer.
-
+    
 Already existing files will be overwritten.
 """
-function download_raw_data()
+function download_raw_data(ingest_date::Date)
     @info "download raw data"
-    ingest_date = today()
-    working_date = Dates.format(today() - Day(1), DateFormat("yyyymmdd"))
-    lei_url = "https://leidata.gleif.org/api/v1/concatenated-files/lei2/$working_date/zip"
+    data_date = Dates.format(ingest_date - Day(1), DateFormat("yyyymmdd"))
+    lei_url = "https://leidata.gleif.org/api/v1/concatenated-files/lei2/$data_date/zip"
 
     # retrieve ISIN-LEI mapping URL
     isin_mapping_url = nothing
@@ -66,6 +74,124 @@ function download_raw_data()
     mkpath("../data/raw/$ingest_date")
     mv(LEI_zip, "../data/raw/$ingest_date/company_data.zip"; force=true)
     mv(ISIN_mapping_zip, "../data/raw/$ingest_date/ISIN_mapping.zip"; force=true)
+end
+
+
+"""
+    extract_raw_data()
+
+Extract zip files in raw layer.
+"""
+function extract_source_data(ingest_date::Date)
+    @info "extract source data"
+    directory = "../data/raw/$ingest_date"
+    extract_lei = `unzip -o -qq $directory/company_data.zip -d $directory`
+    run(extract_lei)
+    extract_isin = `unzip -o -qq $directory/ISIN_mapping.zip -d $directory`
+    run(extract_isin)
+end
+
+"""
+    xml2tuple(xml::String)::NamedTuple
+"""
+function xml2tuple(xml::String)::NamedTuple
+    doc = parse_string(xml)
+    lei = find_element(root(doc), "LEI") |> content
+    entity = find_element(root(doc), "Entity")
+    name_element = find_element(entity, "LegalName")
+    name = name_element === nothing ? "" : content(name_element)
+    legal_address = find_element(entity, "LegalAddress")
+    address = ""
+    first_address_line = find_element(legal_address, "FirstAddressLine")
+    additional_address_line = find_element(legal_address, "AdditionalAddressLine")
+    if additional_address_line === nothing
+        address = first_address_line === nothing ? "" : content(first_address_line)
+    else
+        address = content(first_address_line) * "\n" * content(additional_address_line)        
+    end
+    city_element = find_element(legal_address, "City")
+    city = city_element === nothing ? "" : content(city_element)
+    country_element = find_element(legal_address, "Country")
+    country = ""
+    if country_element !== nothing
+        country = content(country_element)   
+    end
+    postal_code_element = find_element(legal_address, "PostalCode")
+    postal_code = postal_code_element === nothing ? "" : content(postal_code_element)
+    free(doc)
+
+    return (lei=lei, name=name, address=address, city=city, postal_code=postal_code, country=country)
+end
+
+
+"""
+    getfirstfile(directory, extension)
+
+Returns the filename of the first file in the given directory, with the specified file extension.
+
+Extensions without dot and case sensitive, e.g. "csv".
+"""
+function getfirstfile(directory, extension)
+    readdir(directory) |> @filter(endswith(_, extension)) |> first
+end
+
+
+"""
+    transform_company_data(ingest_date::Date)
+
+Transform raw company data and create CSV representation in source layer.
+"""
+function transform_company_data(ingest_date::Date)
+    @info "transform raw file"
+    xmlfile = getfirstfile("../data/raw/$ingest_date", "xml")
+    open_tag = "<lei:LEIRecord xmlns:lei=\"http://www.gleif.org/data/schema/leidata/2016\">"
+    close_tag = "</lei:LEIRecord>"
+    element = false
+    sb = nothing
+    record_counter = 0
+    df = DataFrame()
+
+    open("../data/raw/$ingest_date/$xmlfile") do io
+        while !eof(io)
+            line = readline(io; keep=true)
+            stripped = strip(line)
+            if stripped == open_tag && !element
+                element = true
+                sb = StringBuilder()
+                append!(sb, "<lei:LEIRecord xmlns:lei=\"http://www.gleif.org/data/schema/leidata/2016\">\n")
+            elseif stripped == close_tag && element
+                append!(sb, line)
+                element = false
+                lei_record = String(sb)
+                push!(df, xml2tuple(lei_record))
+                
+                record_counter += 1
+                if record_counter % 100_000 == 0 && record_counter > 0
+                    @info string(record_counter) * " records processed"
+                end
+            elseif stripped != open_tag && stripped != close_tag && element
+                append!(sb, line)
+            end
+        end
+    end
+    @info string(record_counter) * " records processed"
+
+    mkpath("../data/source/$ingest_date")
+    CSV.write("../data/source/$ingest_date/company_data.csv", df)
+end
+
+
+"""
+    copy_isin_mapping()
+
+Copy ISIN mapping to source layer.
+"""
+function copy_isin_mapping(ingest_date::Date)
+    @info "copy ISIN mapping to source layer"
+    rawdir = "../data/raw/$ingest_date"
+    csvfile = getfirstfile(rawdir, "csv")
+    mkpath("../data/source/$ingest_date")
+    cp("$rawdir/$csvfile", "../data/source/$ingest_date/isin_mapping.csv")    
 end
 
 end # module
