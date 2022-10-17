@@ -1,14 +1,15 @@
 module DataIngestion
 
+using CSV
+using DataFrames
 using Dates
 using Downloads
 using HTTP
 using JSON
-using StringBuilders
 using LightXML
-using DataFrames
-using CSV
+using Parquet
 using Query
+using StringBuilders
 
 export execute_datapipeline
 
@@ -22,8 +23,8 @@ function execute_datapipeline()
     ingest_date = today()
     #download_raw_data(ingest_date)
     #extract_raw_data(ingest_date)
-    #transform_company_data(ingest_date)
-    #copy_isin_mapping(ingest_date)
+    transform_company_data(ingest_date)
+    #transform_isin_mapping(ingest_date)
 end
 
 
@@ -83,7 +84,7 @@ end
 Extract zip files in raw layer.
 """
 function extract_raw_data(ingest_date::Date)
-    @info "extract source data"
+    @info "extract raw data"
     directory = "../data/raw/$ingest_date"
     extract_lei = `unzip -o -qq $directory/company_data.zip -d $directory`
     run(extract_lei)
@@ -139,10 +140,10 @@ end
 """
     transform_company_data(ingest_date::Date)
 
-Transform raw company data and create CSV representation in source layer.
+Transform raw company data to relational representation and store as Parquet file in source layer.
 """
 function transform_company_data(ingest_date::Date)
-    @info "transform raw file"
+    @info "transform company data"
     xmlfile = getfirstfile("../data/raw/$ingest_date", "xml")
     open_tag = "<lei:LEIRecord xmlns:lei=\"http://www.gleif.org/data/schema/leidata/2016\">"
     close_tag = "</lei:LEIRecord>"
@@ -166,9 +167,9 @@ function transform_company_data(ingest_date::Date)
                 push!(df, xml2tuple(lei_record))
                 
                 record_counter += 1
-                if record_counter % 100_000 == 0 && record_counter > 0
-                    @info string(record_counter) * " records processed"
-                end
+                #if record_counter % 100_000 == 0 && record_counter > 0
+                #    @info string(record_counter) * " records processed"
+                #end
             elseif stripped != open_tag && stripped != close_tag && element
                 append!(sb, line)
             end
@@ -177,21 +178,24 @@ function transform_company_data(ingest_date::Date)
     @info string(record_counter) * " records processed"
 
     mkpath("../data/source/$ingest_date")
-    CSV.write("../data/source/$ingest_date/company_data.csv", df)
+    write_parquet("../data/source/$ingest_date/company_data.parquet", df, compression_codec=:zstd)
 end
 
 
 """
-    copy_isin_mapping()
+    transform_isin_mapping(ingest_date::Date)
 
-Copy ISIN mapping to source layer.
+Transform ISIN mapping to Parquet format and store in source layer.
 """
-function copy_isin_mapping(ingest_date::Date)
-    @info "copy ISIN mapping to source layer"
+function transform_isin_mapping(ingest_date::Date)
+    @info "transform ISIN mapping"
     rawdir = "../data/raw/$ingest_date"
+    sourcedir = "../data/source/$ingest_date"
+    mkpath(sourcedir)
+
     csvfile = getfirstfile(rawdir, "csv")
-    mkpath("../data/source/$ingest_date")
-    cp("$rawdir/$csvfile", "../data/source/$ingest_date/isin_mapping.csv")    
+    df = CSV.read("$rawdir/$csvfile", DataFrame, stringtype=String)
+    write_parquet("$sourcedir/isin_mapping.parquet", df, compression_codec=:zstd)
 end
 
 end # module
