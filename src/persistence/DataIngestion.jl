@@ -21,10 +21,12 @@ Run the data pipeline from raw to prepared layer.
 """
 function execute_datapipeline()
     ingest_date = today()
+    @info "execute data pipeline for ingest date: $ingest_date"
     #download_raw_data(ingest_date)
     #extract_raw_data(ingest_date)
-    transform_company_data(ingest_date)
+    #transform_company_data(ingest_date)
     #transform_isin_mapping(ingest_date)
+    remove_raw_data(ingest_date)
 end
 
 
@@ -196,6 +198,16 @@ function transform_isin_mapping(ingest_date::Date)
     csvfile = getfirstfile(rawdir, "csv")
     df = CSV.read("$rawdir/$csvfile", DataFrame, stringtype=String)
     write_parquet("$sourcedir/isin_mapping.parquet", df, compression_codec=:zstd)
+end
+
+"""
+    remove_raw_data(ingest_date::Date)
+
+Remove raw data of given ingest date to reduce disk utilization.
+"""
+function remove_raw_data(ingest_date::Date)
+    @info "remove raw data"
+    rm("../data/raw/$ingest_date", recursive=true)
 end
 
 end # module
