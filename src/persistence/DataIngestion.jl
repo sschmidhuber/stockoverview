@@ -7,6 +7,7 @@ using Downloads
 using HTTP
 using JSON
 using LightXML
+using Logging
 using Parquet
 using Query
 using StringBuilders
@@ -21,12 +22,28 @@ Run the data pipeline from raw to prepared layer.
 """
 function execute_datapipeline()
     ingest_date = today()
-    @info "execute data pipeline for ingest date: $ingest_date"
-    #download_raw_data(ingest_date)
-    #extract_raw_data(ingest_date)
-    #transform_company_data(ingest_date)
-    #transform_isin_mapping(ingest_date)
-    remove_raw_data(ingest_date)
+    local logger, io
+    if !isinteractive()
+        mkpath("../logs/datapipeline")
+        io = open("../logs/datapipeline/$ingest_date.log", "w+", lock=true)
+        logger = SimpleLogger(io)
+    else
+        logger = SimpleLogger()
+    end
+    
+    with_logger(logger) do
+        start = now()
+        @info "execute data pipeline for ingest date: $ingest_date -- $start"
+        download_raw_data(ingest_date)
+        extract_raw_data(ingest_date)
+        transform_company_data(ingest_date)
+        transform_isin_mapping(ingest_date)
+        remove_raw_data(ingest_date)
+        time_elapsed = canonicalize(now() - start)
+        @info "pipeline execution completed in: $time_elapsed -- $(now())"
+    end
+    
+    close(io)
 end
 
 
