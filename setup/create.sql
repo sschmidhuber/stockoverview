@@ -104,6 +104,8 @@ CREATE TABLE "metrics" (
 	"price_book_ratio"	REAL,
 	"dividend_return_ratio"	REAL,
 	"dividend_return_ratio_avg3"	REAL,
+	"dividend_payout_ratio"	REAL,
+	"dividend_payout_ratio_avg3"	REAL,
 	"price_cashflow_ratio" REAL,
 	PRIMARY KEY("isin")
 ) WITHOUT ROWID;
