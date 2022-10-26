@@ -4,13 +4,17 @@ module StockOverview
 
 cd(@__DIR__)
 
-using Logging
+using LoggingExtras
 using Dates
 if !isinteractive()
     mkpath("../logs")
-    io = open("../logs/application.log", "a+", lock=true)
-    global_logger(SimpleLogger(io))
-    @info "application start -- $(now())"
+    io = open("../logs/application.log", "a+")
+    logger = FormatLogger(io) do io, args
+        println(io, args.level, ": ", args.message, "  (", args._module, ":", args.line, ")")
+    end
+    logger = MinLevelLogger(logger, Logging.Info)
+    global_logger(logger)
+    @warn "==== application start -- $(now()) ===="
 end
 
 include("service/Models.jl")
@@ -30,8 +34,9 @@ using .DataIngestion
 
 export Model, Scheduler, DataRetrieval, DBAccess, DataIngestion
 
-DataIngestion.execute_datapipeline()
+# DataIngestion.execute_datapipeline()
 
+@warn "==== application end -- $(now()) ===="
 close(io)
 
 end # module

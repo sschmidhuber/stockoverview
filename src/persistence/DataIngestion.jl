@@ -7,7 +7,7 @@ using Downloads
 using HTTP
 using JSON
 using LightXML
-using Logging
+using LoggingExtras
 using Parquet
 using Query
 using StringBuilders
@@ -25,10 +25,13 @@ function execute_datapipeline()
     local logger, io
     if !isinteractive()
         mkpath("../logs/datapipeline")
-        io = open("../logs/datapipeline/$ingest_date.log", "w+", lock=true)
-        logger = SimpleLogger(io)
+        io = open("../logs/datapipeline/$ingest_date.log", "w+")
+        logger = FormatLogger(io) do io, args
+            println(io, args.level, ": ", args.message, "  (", args._module, ":", args.line, ")")
+        end
+        logger = MinLevelLogger(logger, Logging.Info)
     else
-        logger = SimpleLogger()
+        logger = current_logger()
     end
     
     with_logger(logger) do
