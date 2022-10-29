@@ -1,5 +1,8 @@
 module DataIngestion
 
+using ..DataRetrieval
+using ..DBAccess
+using ..Model
 using CSV
 using DataFrames
 using Dates
@@ -14,6 +17,8 @@ using StringBuilders
 
 export execute_datapipeline
 
+const RETENTION_LIMIT = 5
+
 
 """
     execute_datapipeline()
@@ -22,7 +27,7 @@ Run the data pipeline from raw to prepared layer.
 """
 function execute_datapipeline()
     ingest_date = today()
-    local logger, io
+    local logger
     if !isinteractive()
         mkpath("../logs/datapipeline")
         io = open("../logs/datapipeline/$ingest_date.log", "w+")
@@ -37,16 +42,26 @@ function execute_datapipeline()
     with_logger(logger) do
         start = now()
         @info "execute data pipeline for ingest date: $ingest_date -- $start"
-        download_raw_data(ingest_date)
-        extract_raw_data(ingest_date)
-        transform_company_data(ingest_date)
-        transform_isin_mapping(ingest_date)
-        remove_raw_data(ingest_date)
+        #download_raw_data(ingest_date)
+        #extract_raw_data(ingest_date)
+        #transform_company_data(ingest_date)
+        #transform_isin_mapping(ingest_date)
+        #remove_raw_data(ingest_date)
+        prepare_security_data(ingest_date)
+        securities, companies = filter_and_join(ingest_date)
+
+        # write security and company data to DB
+        # houskeeping
+            # remove raw data
+            # keep 10 days of source and prepared data
+
+        
+
+        ## in spereate function
+        # update security and company data in DB based on timestamps
         time_elapsed = canonicalize(now() - start)
         @info "pipeline execution completed in: $time_elapsed -- $(now())"
     end
-    
-    close(io)
 end
 
 
@@ -229,5 +244,56 @@ function remove_raw_data(ingest_date::Date)
     @info "remove raw data"
     rm("../data/raw/$ingest_date", recursive=true)
 end
+
+
+"""
+    prepare_security_data(ingest_date::Date)
+
+Fetch and store security data in prepared layer. Incrementally, based on the latest
+available data.
+"""
+function prepare_security_data(ingest_date::Date)
+    @info "prepare security data"
+    isin_mapping = read_parquet("../data/source/$ingest_date/isin_mapping.parquet") |> DataFrame
+    latest_ingest_date = readdir("../data/prepared") |> last
+    securities = read_parquet("../data/prepared/$latest_ingest_date/security_data.parquet") |> DataFrame
+    new_securities = setdiff(isin_mapping.ISIN, securities.isin)
+    @info "$(length(new_securities)) new securities identified"
+
+    #=foreach(new_securities) do isin
+        security = fetchsecurityheader(isin)
+        push!(securities, security)
+    end=#
+
+    mkpath("../data/prepared/$ingest_date")
+    write_parquet("../data/prepared/$ingest_date/security_data.parquet", securities, compression_codec=:zstd)
+end
+
+
+"""
+    filter_and_join(ingest_date::Date)
+
+Filter and join security and company data. Returns a Tuple of DataFrames, securities and companies.
+Results are not persisted.
+"""
+function filter_and_join(ingest_date::Date)
+    securities = read_parquet("../data/prepared/$ingest_date/security_data.parquet") |> DataFrame
+    isin_mapping = read_parquet("../data/source/$ingest_date/isin_mapping.parquet") |> DataFrame
+    companies = read_parquet("../data/source/$ingest_date/company_data.parquet") |> DataFrame
+    
+    securities = securities |>
+        @filter(_.type == "Share") |>
+        @join(isin_mapping, _.isin, _.ISIN, {_.isin, _.wkn, _.name, _.type, __.LEI}) |>
+        @rename(:LEI => :lei) |>
+        DataFrame
+    
+    companies = companies |>
+        @filter(_.lei ∈ securities.lei) |>
+        DataFrame
+
+    return securities, companies
+end
+
+
 
 end # module

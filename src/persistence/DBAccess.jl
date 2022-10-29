@@ -1,12 +1,11 @@
 module DBAccess
     
-using SQLite
+using ..Model
 using DataFrames
 using Dates
+using SQLite
 
-using ..Models
-
-DB = "data/$(ENV["database"])"
+DB = "../data/$(ENV["database"])"
 
 """
 return string to database file

@@ -2,10 +2,15 @@
 
 module StockOverview
 
-cd(@__DIR__)
+export Model, Scheduler, DataRetrieval, DBAccess, DataIngestion
 
 using LoggingExtras
 using Dates
+
+ENV["database"] = "production.sqlite"
+cd(@__DIR__)
+
+# setup file logger in non-interactive execution
 if !isinteractive()
     mkpath("../logs")
     io = open("../logs/application.log", "a+")
@@ -17,7 +22,9 @@ if !isinteractive()
     @warn "==== application start -- $(now()) ===="
 end
 
-include("service/Models.jl")
+# load local modules
+include("service/Model.jl")
+using .Model
 
 include("service/Scheduler.jl")
 using .Scheduler
@@ -25,18 +32,14 @@ using .Scheduler
 include("service/DataRetrieval.jl")
 using .DataRetrieval
 
-ENV["database"] = "production.sqlite"
 include("persistence/DBAccess.jl")
 using .DBAccess
 
 include("persistence/DataIngestion.jl")
 using .DataIngestion
 
-export Model, Scheduler, DataRetrieval, DBAccess, DataIngestion
-
 # DataIngestion.execute_datapipeline()
 
 @warn "==== application end -- $(now()) ===="
-close(io)
 
 end # module

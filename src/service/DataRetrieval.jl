@@ -1,12 +1,11 @@
 module DataRetrieval
 
+using ..Model
+using DataFrames
+using Dates
 using HTTP
 using JSON
 using LightXML
-using DataFrames
-using Dates
-
-using ..Models
 
 export fetchexchangerates, fetchsecurityheader
 
