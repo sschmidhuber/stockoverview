@@ -12,6 +12,7 @@ using JSON
 using LightXML
 using LoggingExtras
 using Parquet
+using ThreadsX
 using Query
 using StringBuilders
 
@@ -42,20 +43,15 @@ function execute_datapipeline()
     with_logger(logger) do
         start = now()
         @info "execute data pipeline for ingest date: $ingest_date -- $start"
-        #download_raw_data(ingest_date)
-        #extract_raw_data(ingest_date)
-        #transform_company_data(ingest_date)
-        #transform_isin_mapping(ingest_date)
-        #remove_raw_data(ingest_date)
+        download_raw_data(ingest_date)
+        extract_raw_data(ingest_date)
+        transform_company_data(ingest_date)
+        transform_isin_mapping(ingest_date)
+        remove_raw_data(ingest_date)
         prepare_security_data(ingest_date)
         securities, companies = filter_and_join(ingest_date)
-
-        # write security and company data to DB
-        # houskeeping
-            # remove raw data
-            # keep 10 days of source and prepared data
-
-        
+        write_to_db(securities, companies)
+        cleanup(RETENTION_LIMIT)        
 
         ## in spereate function
         # update security and company data in DB based on timestamps
@@ -277,6 +273,7 @@ Filter and join security and company data. Returns a Tuple of DataFrames, securi
 Results are not persisted.
 """
 function filter_and_join(ingest_date::Date)
+    @info "filter and join security and company data"
     securities = read_parquet("../data/prepared/$ingest_date/security_data.parquet") |> DataFrame
     isin_mapping = read_parquet("../data/source/$ingest_date/isin_mapping.parquet") |> DataFrame
     companies = read_parquet("../data/source/$ingest_date/company_data.parquet") |> DataFrame
@@ -287,13 +284,61 @@ function filter_and_join(ingest_date::Date)
         @rename(:LEI => :lei) |>
         DataFrame
     
-    companies = companies |>
-        @filter(_.lei ∈ securities.lei) |>
-        DataFrame
+    predicate = ThreadsX.map(lei -> lei ∈ securities.lei, companies.lei)
+    companies = companies[predicate,:]
 
     return securities, companies
 end
 
 
+"""
+    write_to_db
+
+Writecompany and security data to DB.
+"""
+function write_to_db(securities::DataFrame, companies::DataFrame)
+    @info "write $(nrow(securities)) securities and $(nrow(companies)) companies to DB"
+    company_entities = ThreadsX.map(eachrow(companies)) do r
+        Company(r.lei, r.name, r.address, r.city, r.postal_code, r.country)
+    end
+
+    security_entities = ThreadsX.map(eachrow(securities)) do r
+        Security(r.isin, r.wkn, r.lei, r.name, r.type)
+    end
+
+    insert_update_company(company_entities)
+    insert_update_security(security_entities)
+end
+
+
+"""
+    cleanup
+
+Remove logs, files and directories, above than retention limit. The retention limit represents the number of
+past pipeline runs.
+"""
+function cleanup(retention_limit)
+    @info "cleanup old logs, files and directories"
+    logs = readdir("../logs/datapipeline") |> @orderby_descending(_) |> @drop(retention_limit)
+    if length(logs) > 0
+        for logfile in logs
+            rm("../logs/datapipeline/$logfile")
+        end
+    end
+
+    source = readdir("../data/source") |> @orderby_descending(_) |> @drop(retention_limit)
+    if length(source) > 0
+        for dir in source
+            rm("../data/source/$dir", recursive=true)
+        end
+    end
+
+    prepared = readdir("../data/prepared") |> @orderby_descending(_) |> @drop(retention_limit)
+    if length(prepared) > 0
+        for dir in logs
+            rm("../data/prepared/$dir", recursive=true)
+        end
+    end
+end
 
 end # module

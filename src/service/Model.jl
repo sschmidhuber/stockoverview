@@ -8,16 +8,22 @@ export Location, Company, Security, EuroExchangeRates
 struct Location
     address::String
     city::String
-    country::String
     postal_code::String
+    country::String
 end
 
 
 struct Company
     lei::String
     name::String
-    location::Location
+    location::Union{Location,Missing}
+    profile::Union{String,Missing}
+    url::Union{String,Missing}
+    founded::Union{Int,Missing}
 end
+
+Company(lei, name, address, city, postal_code, country) = Company(lei, name, Location(address, city, postal_code, country), missing, missing, missing)
+Company(lei, name) = Company(lei, name, missing, missing, missing, missing)
 
 
 struct Security
@@ -26,10 +32,13 @@ struct Security
     wkn::Union{String,Missing}
     lei::Union{String,Missing}
     name::Union{String,Missing}
-    type::Union{String, Missing}
+    type::Union{String,Missing}
+    main::Union{Bool,Missing}
+    outstanding::Union{Int,Missing}
 end
 
-Security(isin, wkn, name, type) = Security(isin, missing, wkn, missing, name, type)
+Security(isin, wkn, lei, name, type) = Security(isin, missing, wkn, lei, name, type, missing, missing)
+Security(isin, wkn, name, type) = Security(isin, wkn, missing, name, type)
 Security(isin) = Security(isin, missing, missing, missing)
 
     

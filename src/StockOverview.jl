@@ -7,7 +7,7 @@ export Model, Scheduler, DataRetrieval, DBAccess, DataIngestion
 using LoggingExtras
 using Dates
 
-ENV["database"] = "production.sqlite"
+ENV["database"] = "stockoverview.db"
 cd(@__DIR__)
 
 # setup file logger in non-interactive execution

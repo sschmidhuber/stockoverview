@@ -5,14 +5,10 @@ using DataFrames
 using Dates
 using SQLite
 
+export insert_update_company, insert_update_security
+
 DB = "../data/$(ENV["database"])"
 
-"""
-return string to database file
-"""
-function getdbfile()
-    return DB
-end
 
 # get security table as DataFrame
 function get_securities()
@@ -27,16 +23,30 @@ end
 
 
 # insert the given security to DB
-function insert_security(security::Security)
+function insert_update_security(security::Security)
     db = SQLite.DB(DB)
-    stmt = SQLite.Stmt(db, "INSERT INTO security (isin, symbol, wkn, lei, name, type) VALUES (?,?,?,?,?,?);")
+    insert_update_security_common(db, security)
+end
 
+function insert_update_security(securities::Vector{Security})
+    db = SQLite.DB(DB)
+    for security in securities
+        insert_update_security_common(db, security)
+    end  
+end
+
+function insert_update_security_common(db, security)
     try
-        DBInterface.execute(stmt, [security.isin, security.symbol, security.wkn, security.lei, security.name, security.type])
+        if DBInterface.execute(db, "select * from security where isin = '$(security.isin)';") |> isempty
+            stmt = SQLite.Stmt(db, "INSERT INTO security (isin, symbol, wkn, lei, name, type, main, outstanding) VALUES (?,?,?,?,?,?,?,?);")
+            DBInterface.execute(stmt, [security.isin, security.symbol, security.wkn, security.lei, security.name, security.type, security.main, security.outstanding])
+        else
+            stmt = SQLite.Stmt(db, "UPDATE security SET symbol=?, wkn=?, lei=?, name=?, type=?, main=?, outstanding=? where isin=?;")
+            DBInterface.execute(stmt, [security.symbol, security.wkn, security.lei, security.name, security.type, security.main, security.outstanding, security.isin])
+        end
     catch e
-        @warn "failed to insert $(security.isin) : $(security.name)"
-        showerror(stdout, e)
-        print("\n")
+        @warn "failed to insert/update security: $(security.isin)"
+        println(e)
         GC.gc()
     end
 end
@@ -57,14 +67,20 @@ end
 
 # the common part of insert_update_company methods, not supposed to be used from outside the module
 function insert_update_company_common(db, company)
-    n = DBInterface.execute(db, "select * from company where lei = '$(company.lei)';") |> DataFrame  |> nrow
-    if n == 0
-        stmt = SQLite.Stmt(db, "INSERT INTO company (lei, name, address, city, country, postal_code) VALUES (?,?,?,?,?,?);")
-        DBInterface.execute(stmt, [company.lei, company.name, company.location.address, company.location.city, company.location.country, company.location.postal_code])
-    else
-        stmt = SQLite.Stmt(db, "UPDATE company SET lei = ?, name = ?, address = ?, city = ?, country = ?, postal_code = ? where lei = ?;")
-        DBInterface.execute(stmt, [company.lei, company.name, company.location.address, company.location.city, company.location.country, company.location.postal_code, company.lei])
+    try
+        if DBInterface.execute(db, "select * from company where lei = '$(company.lei)';") |> isempty
+            stmt = SQLite.Stmt(db, "INSERT INTO company (lei, name, address, city, postal_code, country, profile, url, founded) VALUES (?,?,?,?,?,?,?,?,?);")
+            DBInterface.execute(stmt, [company.lei, company.name, company.location.address, company.location.city, company.location.postal_code, company.location.country, company.profile, company.url, company.founded])
+        else
+            stmt = SQLite.Stmt(db, "UPDATE company SET name=?, address=?, city=?, postal_code=?, country=?, profile=?, url=?, founded=? where lei=?;")
+            DBInterface.execute(stmt, [company.name, company.location.address, company.location.city, company.location.postal_code, company.location.country, company.profile, company.url, company.founded, company.lei])
+        end
+    catch e
+        @warn "failed to insert/update company: $(company.lei)"
+        println(e)
+        GC.gc()
     end
+
 end
 
 # insert vector of companies, thow error if insert fails

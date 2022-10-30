@@ -35,7 +35,7 @@ CREATE TABLE "security" (
 	"lei"	TEXT,
 	"name"	TEXT,
 	"type"	TEXT,
-	"primary"	BOOLEAN,
+	"main"	BOOLEAN,
 	"outstanding"	INTEGER,
 	PRIMARY KEY("isin"),
 	FOREIGN KEY("lei") REFERENCES company("lei")
