@@ -6,10 +6,10 @@ export Location, Company, Security, EuroExchangeRates
 
 
 struct Location
-    address::String
-    city::String
-    postal_code::String
-    country::String
+    address::Union{String,Missing}
+    city::Union{String,Missing}
+    postal_code::Union{String,Missing}
+    country::Union{String,Missing}
 end
 
 

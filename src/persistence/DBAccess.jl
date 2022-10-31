@@ -5,7 +5,7 @@ using DataFrames
 using Dates
 using SQLite
 
-export insert_update_company, insert_update_security
+export insert_update_company, insert_update_security, get_securities
 
 DB = "../data/$(ENV["database"])"
 

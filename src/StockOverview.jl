@@ -38,6 +38,9 @@ using .DBAccess
 include("persistence/DataIngestion.jl")
 using .DataIngestion
 
+include("ui/Dashboard.jl")
+using .Dashboard
+
 # DataIngestion.execute_datapipeline()
 
 @warn "==== application end -- $(now()) ===="
