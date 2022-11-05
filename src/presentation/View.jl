@@ -1,12 +1,12 @@
-module Dashboard
+module View
 
-using ..DBAccess
+using ..Service
 using Stipple
 using StippleUI
 
 
 @reactive mutable struct SecurityView <: ReactiveModel
-    data::R{DataTable} = DataTable(get_securities())
+    data::R{DataTable} = DataTable(preparesecurities())
     data_pagination::DataTablePagination = DataTablePagination(rows_per_page=10)
   end
   

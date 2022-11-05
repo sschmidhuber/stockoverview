@@ -50,7 +50,7 @@ function fetchsecurityheader(isin::String)
         source = JSON.parse(res.body |> String, null=missing)
         security = Security(isin, source["wkn"], source["name"], source["instrumentType"]["mainType"])
     catch
-        @info "failed to retrieve security information for \"$isin\""
+        @debug "failed to retrieve security information for \"$isin\""
         security = Security(isin)
     end
 

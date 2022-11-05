@@ -23,23 +23,26 @@ if !isinteractive()
 end
 
 # load local modules
-include("service/Model.jl")
+include("logic/Model.jl")
 using .Model
 
-include("service/Scheduler.jl")
-using .Scheduler
-
-include("service/DataRetrieval.jl")
+include("logic/DataRetrieval.jl")
 using .DataRetrieval
 
-include("persistence/DBAccess.jl")
+include("data/DBAccess.jl")
 using .DBAccess
 
-include("persistence/DataIngestion.jl")
+include("data/DataIngestion.jl")
 using .DataIngestion
 
-include("ui/Dashboard.jl")
-using .Dashboard
+include("logic/Scheduler.jl")
+using .Scheduler
+
+include("logic/Service.jl")
+using .Service
+
+include("presentation/View.jl")
+using .View
 
 # DataIngestion.execute_datapipeline()
 
