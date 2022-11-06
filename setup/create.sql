@@ -5,9 +5,10 @@ CREATE TABLE "company" (
 	"city"	TEXT,
 	"postal_code"	TEXT,
 	"country"	TEXT,
-	"profile" TEXT,
-	"url" TEXT,
-	"founded" TEXT,
+	"profile"	TEXT,
+	"url"	TEXT,
+	"founded"	TEXT,
+	"updated"	TEXT,
 	PRIMARY KEY("lei")
 ) WITHOUT ROWID;
 
@@ -37,6 +38,7 @@ CREATE TABLE "security" (
 	"type"	TEXT,
 	"main"	BOOLEAN,
 	"outstanding"	INTEGER,
+	"updated"	TEXT,
 	PRIMARY KEY("isin"),
 	FOREIGN KEY("lei") REFERENCES company("lei")
 ) WITHOUT ROWID;
@@ -93,6 +95,7 @@ CREATE TABLE "annual_report" (
 	"free_cashflow"	INTEGER,
 	"currency"	TEXT,
 	"employees"	INTEGER,
+	"updated"	TEXT,
 	PRIMARY KEY("lei","year")
 ) WITHOUT ROWID;
 

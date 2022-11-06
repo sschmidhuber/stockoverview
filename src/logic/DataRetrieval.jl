@@ -7,7 +7,7 @@ using HTTP
 using JSON
 using LightXML
 
-export fetchexchangerates, fetchsecurityheader
+export fetchexchangerates, fetchsecurity
 
 #=
 options for retrieving data
@@ -42,20 +42,43 @@ function fetchexchangerates()
     return EuroExchangeRates(date, rates)
 end
 
+"""
+    fetchsecurity(isin::String)::Security
 
-function fetchsecurityheader(isin::String)
-    security = nothing
+Fetch security master data of a security identified by its ISIN. A valid security type will be
+returned, even if no data can't be found.
+"""
+function fetchsecurity(isin::String)::Security
+    symbol, wkn, name, type, outstanding = nothing, nothing, nothing, nothing, nothing
     try
-        res = HTTP.request("GET", "https://component-api.wertpapiere.ing.de/api/v1/components/instrumentheader/$isin")
+        res = HTTP.get("https://component-api.wertpapiere.ing.de/api/v1/components/instrumentheader/$isin")
         source = JSON.parse(res.body |> String, null=missing)
-        security = Security(isin, source["wkn"], source["name"], source["instrumentType"]["mainType"])
+        wkn, name, type = source["wkn"], source["name"], source["instrumentType"]["mainType"]
     catch
-        @debug "failed to retrieve security information for \"$isin\""
-        security = Security(isin)
+        @debug "failed to retrieve security information for \"$isin\" from ING (https://component-api.wertpapiere.ing.de/api/v1/components/instrumentheader/$isin)"
+        return Security(isin)
     end
 
-    
-    return security
+    try
+        res = HTTP.get("https://query2.finance.yahoo.com/v1/finance/search?q=$isin")
+        source = JSON.parse(res.body |> String, null=missing)
+        symbol = source["quotes"][1]["symbol"]
+    catch
+        @debug "failed to retrieve security information for \"$isin\" from yahoo (https://query2.finance.yahoo.com/v1/finance/search?q=$isin)"
+        return Security(isin, wkn, name, type)
+    end
+
+    try
+        res = HTTP.get("https://query2.finance.yahoo.com/v7/finance/quote?symbols=$symbol&fields=messageBoardId,longName,shortName,marketCap,underlyingSymbol,underlyingExchangeSymbol,headSymbolAsString,regularMarketPrice,regularMarketChange,regularMarketChangePercent,regularMarketVolume")
+        source = JSON.parse(res.body |> String, null=missing)
+        outstanding = source["quoteResponse"]["result"][1]["sharesOutstanding"]
+    catch
+        @debug "failed to retrieve security information for \"$symbol\" from yahoo (https://query2.finance.yahoo.com/v7/finance/quote?symbols=$symbol&fields=messageBoardId,longName,shortName,marketCap,underlyingSymbol,underlyingExchangeSymbol,headSymbolAsString,regularMarketPrice,regularMarketChange,regularMarketChangePercent,regularMarketVolume)"
+        return Security(isin, wkn, name, type)
+    end
+
+
+    return Security(isin, symbol, wkn, missing, name, type, missing, outstanding)
 end
 
 

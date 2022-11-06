@@ -22,10 +22,12 @@ using .Service
 @testset "StockOverview" begin
 
 @testset "Data Retrieval" begin
-    security = DataRetrieval.fetchsecurityheader("DE0008404005")
+    security = DataRetrieval.fetchsecurity("DE0008404005")
     @test security isa Model.Security
     @test security.name == "Allianz"
-    security = DataIngestion.fetchsecurityheader("invalid ISIN")
+    @test security.symbol == "ALV.DE"
+    @test security.outstanding > 400_000_000 && security.outstanding < 500_000_000
+    security = DataIngestion.fetchsecurity("invalid ISIN")
     @test security isa Model.Security
     @test security.name === missing
 
