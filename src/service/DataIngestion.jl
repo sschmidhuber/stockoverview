@@ -1,18 +1,15 @@
 module DataIngestion
 
-using ..DataRetrieval
 using ..DBAccess
-using ..Model
+using ..DataRetrieval
 using ..FSAccess
+using ..Model
+using Chain
 using DataFrames
+using DataFramesMeta
 using Dates
-using Downloads
-using HTTP
-using JSON
 using LightXML
 using LoggingExtras
-using ThreadsX
-using Query
 using StringBuilders
 
 export execute_datapipeline
@@ -42,8 +39,8 @@ function execute_datapipeline()
     with_logger(logger) do
         start = now()
         @info "execute data pipeline for ingest date: $ingest_date -- $start"
-        #download_raw_data(ingest_date)
-        #extract_raw_data(ingest_date)
+        download_raw_data(ingest_date)
+        extract_raw_data(ingest_date)
         transform_company_data(ingest_date)
         transform_isin_mapping(ingest_date)
         remove_raw_data(ingest_date)
@@ -69,39 +66,10 @@ Already existing files will be overwritten.
 """
 function download_raw_data(ingest_date::Date)
     @info "download raw data"
-    data_date = Dates.format(ingest_date - Day(1), DateFormat("yyyymmdd"))
-    lei_url = "https://leidata.gleif.org/api/v1/concatenated-files/lei2/$data_date/zip"
-
-    # retrieve ISIN-LEI mapping URL
-    isin_mapping_url = nothing
-    try
-        res = HTTP.request("GET", "https://isinmapping.gleif.org/api/v2/isin-lei")
-        source = JSON.parse(res.body |> String, null=missing)
-        isin_mapping_url = source["data"][1]["attributes"]["downloadLink"]
-    catch e
-        showerror(stderr, e)
-        println("failed to retrieve \"isin_mapping_url\"")
-        exit(1)
-    end
 
     # download raw files
-    LEI_zip = nothing
-    try
-        LEI_zip = Downloads.download(lei_url)
-    catch e
-        showerror(stderr, e)
-        println("failed to download LEI file")
-        exit(1)
-    end
-
-    ISIN_mapping_zip = nothing
-    try
-        ISIN_mapping_zip = Downloads.download(isin_mapping_url)
-    catch e
-        showerror(stderr, e)
-        println("failed to download ISIN mapping file")
-        exit(1)
-    end
+    LEI_zip = download_company_data(ingest_date)
+    ISIN_mapping_zip = download_isin_mapping(ingest_date)
 
     # copy temporary files to raw layer
     tmp_to_raw(LEI_zip, "company_data.zip", ingest_date)
@@ -169,12 +137,8 @@ function transform_company_data(ingest_date::Date)
                 append!(sb, line)
                 element = false
                 lei_record = String(sb)
-                push!(df, xml2tuple(lei_record))
-                
+                push!(df, xml2tuple(lei_record))                
                 record_counter += 1
-                #if record_counter % 100_000 == 0 && record_counter > 0
-                #    @info string(record_counter) * " records processed"
-                #end
             elseif stripped != open_tag && stripped != close_tag && element
                 append!(sb, line)
             end
@@ -254,14 +218,17 @@ function filter_and_join(ingest_date::Date)
     isin_mapping = read_parquet("isin_mapping.parquet", source, ingest_date)
     companies = read_parquet("company_data.parquet", source, ingest_date)
     
-    securities = securities |>
-        @filter(_.type == "Share") |>
-        @join(isin_mapping, _.isin, _.ISIN, {_.isin, _.wkn, _.name, _.type, __.LEI}) |>
-        @rename(:LEI => :lei) |>
-        DataFrame
+    securities = @chain securities begin
+        @subset(:type .== "Share")
+        leftjoin(isin_mapping, on = :isin => :ISIN)
+        rename(:LEI => :lei)
+    end
     
-    predicate = ThreadsX.map(lei -> lei ∈ securities.lei, companies.lei)
-    companies = companies[predicate,:]
+    companies = @chain companies begin
+        rightjoin(securities, on = :lei; matchmissing = :notequal, makeunique=true)
+        @select(:lei, :name, :address, :city, :postal_code, :country)
+        dropmissing(:lei)
+    end
 
     return securities, companies
 end
@@ -274,50 +241,14 @@ Writecompany and security data to DB.
 """
 function write_to_db(securities::DataFrame, companies::DataFrame)
     @info "write $(nrow(securities)) securities and $(nrow(companies)) companies to DB"
-    company_entities = ThreadsX.map(eachrow(companies)) do r
-        Company(r.lei, r.name, r.address, r.city, r.postal_code, r.country)
-    end
-
-    security_entities = ThreadsX.map(eachrow(securities)) do r
-        Security(r.isin, r.wkn, r.lei, r.name, r.type)
-    end
+    company_entities = map(x -> Company(x.lei, x.name, x.address, x.city, x.postal_code, x.country), eachrow(companies))
+    security_entities = map(x -> Security(x.isin, x.wkn, x.lei, x.name, x.type), eachrow(securities))
 
     company_records = insert_update_company(company_entities)
     security_records = insert_update_security(security_entities)
 
     @info "$company_records of $(nrow(companies)) company records successfully inserted/updated"
     @info "$security_records of $(nrow(securities)) security records successfully inserted/updated"
-end
-
-
-"""
-    cleanup
-
-Remove logs, files and directories, above than retention limit. The retention limit represents the number of
-past pipeline runs.
-"""
-function cleanup(retention_limit)
-    @info "cleanup old logs, files and directories"
-    logs = readdir("../logs/datapipeline") |> @orderby_descending(_) |> @drop(retention_limit)
-    if length(logs) > 0
-        for logfile in logs
-            rm("../logs/datapipeline/$logfile")
-        end
-    end
-
-    source = readdir("../data/source") |> @orderby_descending(_) |> @drop(retention_limit)
-    if length(source) > 0
-        for dir in source
-            rm("../data/source/$dir", recursive=true)
-        end
-    end
-
-    prepared = readdir("../data/prepared") |> @orderby_descending(_) |> @drop(retention_limit)
-    if length(prepared) > 0
-        for dir in prepared
-            rm("../data/prepared/$dir", recursive=true)
-        end
-    end
 end
 
 end # module

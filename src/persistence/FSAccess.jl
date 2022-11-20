@@ -2,10 +2,10 @@ module FSAccess
 
 using ..Model
 using CSV
+using Chain
 using DataFrames
 using Dates
 using Parquet
-using Query
 
 export tmp_to_raw, extract_raw_data, remove_raw_data, getfile, getfirstfile, getlastingestdate, read_parquet, write_parquet, read_csv, cleanup
 
@@ -133,23 +133,29 @@ past pipeline runs.
 """
 function cleanup()
     @info "cleanup old logs, files and directories"
-    logs = readdir("../logs/datapipeline") |> @orderby_descending(_) |> @drop(retention_limit)
-    if length(logs) > 0
-        for logfile in logs
+    logs = @chain readdir("../logs/datapipeline") begin
+        sort(rev=true)
+    end
+    if length(logs) > RETENTION_LIMIT
+        for logfile in logs[RETENTION_LIMIT+1:end]
             rm("../logs/datapipeline/$logfile")
         end
     end
 
-    source_dirs = readdir(PATHS[Int(source)]) |> @orderby_descending(_) |> @drop(retention_limit)
-    if length(source_dirs) > 0
-        for dir in source_dirs
+    source_dirs = @chain readdir(PATHS[Int(source)]) begin
+        sort(rev=true)
+    end
+    if length(source_dirs) > RETENTION_LIMIT
+        for dir in source_dirs[RETENTION_LIMIT+1:end]
             rm("$(PATHS[Int(source)])/$dir", recursive=true)
         end
     end
 
-    prepared_dirs = readdir(PATHS[Int(prepared)]) |> @orderby_descending(_) |> @drop(retention_limit)
-    if length(prepared_dirs) > 0
-        for dir in prepared_dirs
+    prepared_dirs = @chain readdir(PATHS[Int(prepared)]) begin
+        sort(rev=true)
+    end
+    if length(prepared_dirs) > RETENTION_LIMIT
+        for dir in prepared_dirs[RETENTION_LIMIT+1:end]
             rm("$(PATHS[Int(prepared)])/$dir", recursive=true)
         end
     end

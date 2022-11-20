@@ -6,8 +6,9 @@ using Dates
 using HTTP
 using JSON
 using LightXML
+using Downloads
 
-export fetch_exchangerates, fetch_security, fetch_securityheader
+export download_company_data, download_isin_mapping, fetch_exchangerates, fetch_security, fetch_securityheader
 
 #=
 options for retrieving data
@@ -25,6 +26,57 @@ options for retrieving data
 
 
 # TODO: fetch index data
+
+"""
+    download_company_data(ingest_date::Date)
+
+Download zipped company XML and returns path to temporary file.
+"""
+function download_company_data(ingest_date::Date)
+    data_date = Dates.format(ingest_date - Day(1), DateFormat("yyyymmdd"))
+    url = "https://leidata.gleif.org/api/v1/concatenated-files/lei2/$data_date/zip"
+    tmp = nothing
+    try
+        tmp = Downloads.download(url)
+    catch e
+        showerror(stderr, e)
+        @warn "failed to download LEI file"
+    end
+
+    return tmp
+end
+
+
+"""
+    download_isin_mapping(ingest_date::Date)
+
+Download zipped ISIN mapping CSV and returns path to temporary file.
+"""
+function download_isin_mapping(ingest_date::Date)
+    data_date = Dates.format(ingest_date - Day(1), DateFormat("yyyymmdd"))
+    url = nothing
+
+    # get URL to mapping file
+    try
+        res = HTTP.request("GET", "https://isinmapping.gleif.org/api/v2/isin-lei")
+        source = JSON.parse(res.body |> String, null=missing)
+        url = source["data"][1]["attributes"]["downloadLink"]
+    catch e
+        showerror(stderr, e)
+        @warn "failed to retrieve ISIN mapping URL"
+    end
+
+    tmp = nothing
+    try
+        tmp = Downloads.download(url)
+    catch e
+        showerror(stderr, e)
+        @warn "failed to download ISIN mapping file"
+    end
+
+    return tmp
+end
+
 
 
 # fetch currency exchange rates
