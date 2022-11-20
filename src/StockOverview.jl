@@ -23,22 +23,25 @@ if !isinteractive()
 end
 
 # load local modules
-include("logic/Model.jl")
+include("Model.jl")
 using .Model
 
-include("logic/DataRetrieval.jl")
-using .DataRetrieval
-
-include("data/DBAccess.jl")
+include("persistence/DBAccess.jl")
 using .DBAccess
 
-include("data/DataIngestion.jl")
+include("persistence/FSAccess.jl")
+using .FSAccess
+
+include("service/DataRetrieval.jl")
+using .DataRetrieval
+
+include("service/DataIngestion.jl")
 using .DataIngestion
 
-include("logic/Scheduler.jl")
+include("service/Scheduler.jl")
 using .Scheduler
 
-include("logic/Service.jl")
+include("service/Service.jl")
 using .Service
 
 include("presentation/View.jl")

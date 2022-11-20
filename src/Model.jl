@@ -2,7 +2,10 @@ module Model
 
 using Dates
 
-export Location, Company, Security, EuroExchangeRates
+export DataLayer, raw, source, prepared, Location, Company, Security, EuroExchangeRates
+
+
+@enum DataLayer raw=1 source=2 prepared=3
 
 
 struct Location

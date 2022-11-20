@@ -3,35 +3,38 @@ using Dates
 
 cd(@__DIR__)
 
-include("../src/logic/Model.jl")
+include("../src/Model.jl")
 using .Model
 
 ENV["database"] = "test.sqlite"
-include("../src/data/DBAccess.jl")
+include("../src/persistence/DBAccess.jl")
 using .DBAccess
 
-include("../src/logic/DataRetrieval.jl")
+include("../src/persistence/FSAccess.jl")
+using .FSAccess
+
+include("../src/service/DataRetrieval.jl")
 using .DataRetrieval
 
-include("../src/data/DataIngestion.jl")
+include("../src/service/DataIngestion.jl")
 using .DataIngestion
 
-include("../src/logic/Service.jl")
+include("../src/service/Service.jl")
 using .Service
 
 @testset "StockOverview" begin
 
 @testset "Data Retrieval" begin
-    security = DataRetrieval.fetchsecurity("DE0008404005")
+    security = DataRetrieval.fetch_security("DE0008404005")
     @test security isa Model.Security
     @test security.name == "Allianz"
     @test security.symbol == "ALV.DE"
     @test security.outstanding > 400_000_000 && security.outstanding < 500_000_000
-    security = DataIngestion.fetchsecurity("invalid ISIN")
+    security = DataIngestion.fetch_security("invalid ISIN")
     @test security isa Model.Security
     @test security.name === missing
 
-    exchangerates = DataRetrieval.fetchexchangerates()
+    exchangerates = DataRetrieval.fetch_exchangerates()
     @test exchangerates isa Model.EuroExchangeRates
     # set offset for weekend days, because no new exchange rates are expected on those days
     if dayofweek(today()) == 6
