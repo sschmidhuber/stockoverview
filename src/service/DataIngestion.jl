@@ -14,7 +14,8 @@ using StringBuilders
 
 export execute_datapipeline
 
-const RETENTION_LIMIT = 5
+
+const RETENTION_LIMIT = parse(Int,ENV["retention_limit"])
 
 
 """
@@ -45,6 +46,7 @@ function execute_datapipeline()
         transform_isin_mapping(ingest_date)
         remove_raw_data(ingest_date)
         prepare_security_data(ingest_date)
+        # update company data: countries, normalize names,...
         securities, companies = filter_and_join(ingest_date)
         write_to_db(securities, companies)
         cleanup(RETENTION_LIMIT)        
@@ -177,7 +179,8 @@ function prepare_security_data(ingest_date::Date)
     new_securities = setdiff(isin_mapping.ISIN, securities.isin)
     @info "$(length(new_securities)) new securities identified"
 
-    batchsize = 1_000
+    #=
+    batchsize = 70_000
     counter = 0
     progress = 0
     foreach(first(new_securities, batchsize)) do isin
@@ -193,14 +196,17 @@ function prepare_security_data(ingest_date::Date)
             @info "fetching security information completed to $newprogress %"
             progress = newprogress
         end
-    end
-
-
-    #=foreach(new_securities) do isin
-        security = fetch_security(isin)
-        push!(securities, security)
-        sleep(0.3)
     end=#
+
+
+    foreach(new_securities) do isin
+        securityheader = fetch_securityheader(isin)
+        push!(securities, (securityheader.isin, securityheader.wkn, securityheader.name, securityheader.type))
+        if(securityheader.type !== missing && securityheader.type == "Share")
+            @info "$(securityheader.isin): $(securityheader.name)"
+        end
+        sleep(0.3)
+    end
 
     write_parquet(securities, "security_data.parquet", prepared, ingest_date)
 end

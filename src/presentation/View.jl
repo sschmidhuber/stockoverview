@@ -12,16 +12,14 @@ using StippleUI
   
   function ui(model)
     page( model, title="Stock Overview NEXT", class="container", [
-        row(
-            cell(
-                h3("Stock Overview")
-            )
+      row(
+        heading("Stock Overview")
+      )
+      row(
+        cell(
+          table(title="Securities", :data, pagination=:data_pagination)
         )
-        row(
-            cell(
-                table(title="Securities", :data, pagination=:data_pagination)
-            )
-        )
+      )
       ]
     )
   end

@@ -3,8 +3,8 @@ module Service
 using ..DBAccess
 using ..DataRetrieval
 using ..Model
-using Query
 using DataFrames
+using DataFramesMeta
 
 export preparesecurities
 
@@ -18,10 +18,11 @@ function preparesecurities()::DataFrame
     securities = getsecurities()
     companies = getcompanies()
 
-    securities |>
-        @join(companies, _.lei, _.lei, {_.isin, _.name, __.country, __.city}) |>
-        @rename(:isin => :ISIN, :name => :Name, :country => :Country, :city => :City) |>
-        DataFrame
+    @chain securities begin
+        innerjoin(companies, on = :lei, matchmissing=:notequal, makeunique=true)
+        @select(:isin, :name, :country, :city)
+        rename(:isin => :ISIN, :name => :Name, :country => :Country, :city => :City)
+    end
 end
 
 end # module

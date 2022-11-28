@@ -7,7 +7,7 @@ using SQLite
 
 export insert_update_company, insert_update_security, getsecurities, getcompanies
 
-DB = "../data/$(ENV["database"])"
+const DB = "../data/$(ENV["database"])"
 
 
 """

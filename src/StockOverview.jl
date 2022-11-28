@@ -8,6 +8,7 @@ using LoggingExtras
 using Dates
 
 ENV["database"] = "stockoverview.db"
+ENV["retention_limit"] = 5
 cd(@__DIR__)
 
 # setup file logger in non-interactive execution
@@ -47,8 +48,12 @@ using .Service
 include("presentation/View.jl")
 using .View
 
-# DataIngestion.execute_datapipeline()
 
-@warn "==== application end -- $(now()) ===="
+if !isinteractive()
+    schedulejob(execute_datapipeline, minute=0, hour=4)
+    start_scheduler()
+
+    @info "==== application end -- $(now()) ===="
+end
 
 end # module

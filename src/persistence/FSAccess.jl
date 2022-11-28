@@ -9,7 +9,6 @@ using Parquet
 
 export tmp_to_raw, extract_raw_data, remove_raw_data, getfile, getfirstfile, getlastingestdate, read_parquet, write_parquet, read_csv, cleanup
 
-const RETENTION_LIMIT = 5
 const PATHS = ("../data/raw", "../data/source", "../data/prepared")
 const COMPRESSION = :zstd
 
@@ -131,13 +130,13 @@ end
 Remove logs, files and directories, exceeding the retention limit. The retention limit represents the number of
 past pipeline runs.
 """
-function cleanup()
+function cleanup(retention_limit)
     @info "cleanup old logs, files and directories"
     logs = @chain readdir("../logs/datapipeline") begin
         sort(rev=true)
     end
-    if length(logs) > RETENTION_LIMIT
-        for logfile in logs[RETENTION_LIMIT+1:end]
+    if length(logs) > retention_limit
+        for logfile in logs[retention_limit+1:end]
             rm("../logs/datapipeline/$logfile")
         end
     end
@@ -145,8 +144,8 @@ function cleanup()
     source_dirs = @chain readdir(PATHS[Int(source)]) begin
         sort(rev=true)
     end
-    if length(source_dirs) > RETENTION_LIMIT
-        for dir in source_dirs[RETENTION_LIMIT+1:end]
+    if length(source_dirs) > retention_limit
+        for dir in source_dirs[retention_limit+1:end]
             rm("$(PATHS[Int(source)])/$dir", recursive=true)
         end
     end
@@ -154,8 +153,8 @@ function cleanup()
     prepared_dirs = @chain readdir(PATHS[Int(prepared)]) begin
         sort(rev=true)
     end
-    if length(prepared_dirs) > RETENTION_LIMIT
-        for dir in prepared_dirs[RETENTION_LIMIT+1:end]
+    if length(prepared_dirs) > retention_limit
+        for dir in prepared_dirs[retention_limit+1:end]
             rm("$(PATHS[Int(prepared)])/$dir", recursive=true)
         end
     end
