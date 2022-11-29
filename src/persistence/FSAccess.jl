@@ -33,9 +33,14 @@ function extract_raw_data(ingest_date::Date)
     @info "extract raw data"
     directory = "../data/raw/$ingest_date"
     extract_lei = `unzip -o -qq $directory/company_data.zip -d $directory`
-    run(extract_lei)
     extract_isin = `unzip -o -qq $directory/ISIN_mapping.zip -d $directory`
-    run(extract_isin)
+    try
+        run(extract_lei)
+        run(extract_isin)
+    catch e
+        @error "failed to extract raw data"
+        showerror(e)
+    end
 end
 
 

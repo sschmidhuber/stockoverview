@@ -73,7 +73,6 @@ start the scheduler
 function start_scheduler()
     while true
         current_time = now()
-        @info "check at: $current_time"
         foreach(jobs) do job
             if match(current_time, job)
                 current_period = period_id(current_time)
