@@ -17,7 +17,7 @@ end
 Job(func, minute, hour, dayofweek, dayofmonth) = Job(func, nothing, minute, hour, dayofweek, dayofmonth)
 
 
-const interval = 20 # interval between cheicking if a task execution is scheduled
+const interval = 45 # interval between cheicking if a task execution is scheduled
 const jobs = Vector{Job}()
 
 
@@ -71,6 +71,7 @@ end
 start the scheduler
 """
 function start_scheduler()
+    @info "start job scheduler"
     while true
         current_time = now()
         foreach(jobs) do job

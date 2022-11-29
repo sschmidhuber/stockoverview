@@ -20,10 +20,10 @@ fi
 
 if [[ $ID == "debian" || $NAME == "ubuntu" ]]; then
     echo "\"$PRETTY_NAME\" detected"
-    apt install -y julia redis sed nano htop
+    apt install -y julia redis sed nano htop unzip
 elif [[ $ID == "fedora" ]]; then
     echo "\"$PRETTY_NAME\" detected"
-    dnf install julia redis sed nano htop
+    dnf install julia redis sed nano htop unzip
 else
     echo "unsupported operating system: \"$PRETTY_NAME\" detected"
     exit 1

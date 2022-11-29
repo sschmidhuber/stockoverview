@@ -20,7 +20,7 @@ if !isinteractive()
     end
     logger = MinLevelLogger(logger, Logging.Info)
     global_logger(logger)
-    @warn "==== application start -- $(now()) ===="
+    @info "==== application start -- $(now()) ===="
 end
 
 # load local modules
