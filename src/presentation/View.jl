@@ -29,6 +29,6 @@ using StippleUI
     html(ui(model), context = @__MODULE__)
   end
 
-  #up()
+  up()
 
 end # module

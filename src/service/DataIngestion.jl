@@ -43,11 +43,15 @@ function execute_datapipeline()
         download_raw_data(ingest_date)
         extract_raw_data(ingest_date)
         transform_company_data(ingest_date)
+        GC.gc()
         transform_isin_mapping(ingest_date)
+        GC.gc()
         remove_raw_data(ingest_date)
         prepare_security_data(ingest_date)
+        GC.gc()
         # update company data: countries, normalize names,...
         securities, companies = filter_and_join(ingest_date)
+        GC.gc()
         write_to_db(securities, companies)
         cleanup(RETENTION_LIMIT)        
 
@@ -177,6 +181,8 @@ function prepare_security_data(ingest_date::Date)
     latest_ingest_date = getlastingestdate(prepared)
     securities = read_parquet("security_data.parquet", prepared, latest_ingest_date)
     new_securities = setdiff(isin_mapping.ISIN, securities.isin)
+    isin_mapping = nothing
+    GC.gc()
     @info "$(length(new_securities)) new securities identified"
 
     #=
@@ -222,14 +228,17 @@ function filter_and_join(ingest_date::Date)
     @info "filter and join security and company data"
     securities = read_parquet("security_data.parquet", prepared, ingest_date)
     isin_mapping = read_parquet("isin_mapping.parquet", source, ingest_date)
-    companies = read_parquet("company_data.parquet", source, ingest_date)
     
     securities = @chain securities begin
         @subset(:type .== "Share")
         leftjoin(isin_mapping, on = :isin => :ISIN)
         rename(:LEI => :lei)
     end
+
+    isin_mapping = nothing
+    GC.gc()
     
+    companies = read_parquet("company_data.parquet", source, ingest_date)
     companies = @chain companies begin
         rightjoin(securities, on = :lei; matchmissing = :notequal, makeunique=true)
         @select(:lei, :name, :address, :city, :postal_code, :country)

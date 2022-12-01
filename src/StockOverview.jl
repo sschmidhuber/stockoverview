@@ -45,8 +45,8 @@ using .Scheduler
 include("service/Service.jl")
 using .Service
 
-include("presentation/View.jl")
-using .View
+#include("presentation/View.jl")
+#using .View
 
 
 if !isinteractive()
