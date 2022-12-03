@@ -26,6 +26,13 @@ Run the data pipeline from raw to prepared layer.
 function execute_datapipeline()
     ingest_date = today()
     local logger
+
+    #=
+
+    TODO: add timestamps to logs
+
+    =#
+
     if !isinteractive()
         mkpath("../logs/datapipeline")
         io = open("../logs/datapipeline/$ingest_date.log", "w+")
@@ -43,15 +50,11 @@ function execute_datapipeline()
         download_raw_data(ingest_date)
         extract_raw_data(ingest_date)
         transform_company_data(ingest_date)
-        GC.gc()
         transform_isin_mapping(ingest_date)
-        GC.gc()
         remove_raw_data(ingest_date)
         prepare_security_data(ingest_date)
-        GC.gc()
         # update company data: countries, normalize names,...
         securities, companies = filter_and_join(ingest_date)
-        GC.gc()
         write_to_db(securities, companies)
         cleanup(RETENTION_LIMIT)        
 

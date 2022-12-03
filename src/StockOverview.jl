@@ -15,12 +15,13 @@ cd(@__DIR__)
 if !isinteractive()
     mkpath("../logs")
     io = open("../logs/application.log", "a+")
+    dateformat = DateFormat("u dd -- HH:MM:SS")
     logger = FormatLogger(io) do io, args
-        println(io, args.level, ": ", args.message, "  (", args._module, ":", args.line, ")")
+        println(io, args.level, " -- ", Dates.format(now(), dateformat), ": ", args.message, "  (", args._module, ":", args.line, ")")
     end
     logger = MinLevelLogger(logger, Logging.Info)
     global_logger(logger)
-    @info "==== application start -- $(now()) ===="
+    @info "==== application start ===="
 end
 
 # load local modules
@@ -50,10 +51,10 @@ using .Service
 
 
 if !isinteractive()
-    schedulejob(execute_datapipeline, minute=0, hour=4)
+    schedulejob(execute_datapipeline, minute=0, hour=1)
     start_scheduler()
 
-    @info "==== application end -- $(now()) ===="
+    @info "==== application end ===="
 end
 
 end # module
