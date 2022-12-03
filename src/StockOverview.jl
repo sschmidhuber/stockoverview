@@ -15,7 +15,7 @@ cd(@__DIR__)
 if !isinteractive()
     mkpath("../logs")
     io = open("../logs/application.log", "a+")
-    dateformat = DateFormat("u dd -- HH:MM:SS")
+    dateformat = DateFormat("yyyy-mm-dd -- HH:MM:SS")
     logger = FormatLogger(io) do io, args
         println(io, args.level, " -- ", Dates.format(now(), dateformat), ": ", args.message, "  (", args._module, ":", args.line, ")")
     end

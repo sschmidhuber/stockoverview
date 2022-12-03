@@ -36,8 +36,9 @@ function execute_datapipeline()
     if !isinteractive()
         mkpath("../logs/datapipeline")
         io = open("../logs/datapipeline/$ingest_date.log", "w+")
+        dateformat = DateFormat("yyyy-mm-dd -- HH:MM:SS")
         logger = FormatLogger(io) do io, args
-            println(io, args.level, ": ", args.message, "  (", args._module, ":", args.line, ")")
+            println(io, args.level, " -- ", Dates.format(now(), dateformat), ": ", args.message, "  (", args._module, ":", args.line, ")")
         end
         logger = MinLevelLogger(logger, Logging.Info)
     else
