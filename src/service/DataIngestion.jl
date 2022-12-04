@@ -55,8 +55,8 @@ function execute_datapipeline()
         remove_raw_data(ingest_date)
         prepare_security_data(ingest_date)
         # update company data: countries, normalize names,...
-        securities, companies = filter_and_join(ingest_date)
-        write_to_db(securities, companies)
+        #securities, companies = filter_and_join(ingest_date)
+        #write_to_db(securities, companies)
         cleanup(RETENTION_LIMIT)        
 
         ## in spereate function
