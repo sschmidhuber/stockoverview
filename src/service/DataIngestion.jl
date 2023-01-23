@@ -26,13 +26,6 @@ Run the data pipeline from raw to prepared layer.
 function execute_datapipeline()
     ingest_date = today()
     local logger
-
-    #=
-
-    TODO: add timestamps to logs
-
-    =#
-
     if !isinteractive()
         mkpath("../logs/datapipeline")
         io = open("../logs/datapipeline/$ingest_date.log", "w+")

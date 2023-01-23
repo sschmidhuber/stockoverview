@@ -1,5 +1,13 @@
 #! /usr/bin/env julia
 
+#=
+TODO:
+
+* stop resource lack in data pipeline
+* write data to DB
+
+=#
+
 module StockOverview
 
 export Model, Scheduler, DataRetrieval, DBAccess, DataIngestion
