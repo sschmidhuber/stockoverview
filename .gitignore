@@ -31,4 +31,4 @@ data/
 
 # development environment
 *.code-workspace
-
+.vscode/

@@ -130,7 +130,7 @@ function fetchos(isin)::Int
     end
 
     try        
-        outstanding_shares = source["stocksFigure"]["numSharesCompany"] |> Int
+        outstanding_shares = round(source["stocksFigure"]["numSharesCompany"]) |> Int
     catch
         throw(DataRetrievalError(isin, "error while parsing HTML response", "https://www.onvista.de/aktien/$isin"))
     end
@@ -139,7 +139,7 @@ function fetchos(isin)::Int
 end
 
 # profit and loss
-function fetchpl(isin::String, exchangerates::Dict)::DataFrame
+function fetchpl(isin, exchangerates::Dict)::DataFrame
     source = Dict()
 
     try
@@ -178,7 +178,7 @@ end
 
 
 # balance
-function fetchbalance(isin::String, exchangerates::Dict)::DataFrame
+function fetchbalance(isin, exchangerates::Dict)::DataFrame
     source = Dict()
 
     try
@@ -223,7 +223,7 @@ end
 
 
 # fundamental data
-    function fetchfundamental(isin::String, exchangerates::Dict)::DataFrame
+    function fetchfundamental(isin, exchangerates::Dict)::DataFrame
     source = Dict()
 
     try

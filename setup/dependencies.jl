@@ -13,7 +13,9 @@ Pkg.add([
 "HTTP",
 "Query",
 "Redis",
-"Bukdu"
+"Bukdu",
+"Gumbo",
+"Cascadia"
 ])
 
 exit(0)
