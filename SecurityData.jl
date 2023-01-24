@@ -46,7 +46,7 @@ end
 
 ISODate = DateFormat("yyyy-mm-ddTHH:MM:SS")
 
-function fetchsecurity(isin::String, exchangerates::Dict)::Union{Security,Nothing}
+function fetchsecurity(isin, exchangerates::Dict)::Union{Security,Nothing}
     price_earnings_ratio = price_book_ratio = dividend_return_ratio_last = dividend_return_ratio_avg3 = outstanding_shares = missing
     header = Dict()
     facts = Dict()
@@ -67,7 +67,6 @@ function fetchsecurity(isin::String, exchangerates::Dict)::Union{Security,Nothin
         price_earnings_ratio, price_book_ratio, dividend_return_ratio_last, dividend_return_ratio_avg3 = calculatevalues(header["price"], fundamental_data, balance_data, outstanding_shares)
     catch e
         @warn "processing of ISIN: $isin failed"
-        showerror(stdout, e)
         return nothing
     end
     

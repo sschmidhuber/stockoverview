@@ -17,8 +17,15 @@ export update_db, fetchexchangerates
 
 
 function update_db(concurrent_execution = false)
-    @info "read \"Securities.csv\" file"
-    securities = CSV.read("data/Securities.csv", DataFrame)
+    local path
+    if isinteractive()
+        path = "data/Securities_test.csv"
+        @info "TEST MODE: read \"$path\""
+    else
+        path = "data/Securities.csv"
+        @info "read \"$path\""
+    end
+    securities = CSV.read(path, DataFrame)
     @info "$(nrow(securities)) ISINs"
 
     df = DataFrame(
