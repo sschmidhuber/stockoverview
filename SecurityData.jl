@@ -64,6 +64,11 @@ function fetchsecurity(isin, exchangerates::Dict)::Union{Security,Nothing}
         @async fundamental_data = fetchfundamental(isin, exchangerates)
         end
 
+        # validate results
+        if ismissing(outstanding_shares)
+            return nothing
+        end
+
         price_earnings_ratio, price_book_ratio, dividend_return_ratio_last, dividend_return_ratio_avg3 = calculatevalues(header["price"], fundamental_data, balance_data, outstanding_shares)
     catch e
         @warn "processing of ISIN: $isin failed"
@@ -117,9 +122,9 @@ function fetchfacts(isin)::Union{Dict,Nothing}
 end
 
 # number of outstanding shares
-function fetchos(isin)::Int
+function fetchos(isin)::Union{Int,Missing}
     source = Dict()
-    outstanding_shares = 0
+    outstanding_shares = missing
 
     try
         res = HTTP.request("GET", "https://api.onvista.de/api/v1/stocks/ISIN:$isin/snapshot")
@@ -128,8 +133,12 @@ function fetchos(isin)::Int
         throw(DataRetrievalError(isin, "number of outstanding shares couldn't be retrieved", "https://api.onvista.de/api/v1/stocks/ISIN:$isin/snapshot"))
     end
 
-    try        
-        outstanding_shares = round(source["stocksFigure"]["numSharesCompany"]) |> Int
+    try
+        if haskey(source["stocksFigure"], "numSharesCompany")
+            outstanding_shares = round(source["stocksFigure"]["numSharesCompany"]) |> Int
+        else
+            @warn "unknown number of shares outstanding for: $isin"
+        end        
     catch
         throw(DataRetrievalError(isin, "error while parsing HTML response", "https://www.onvista.de/aktien/$isin"))
     end
