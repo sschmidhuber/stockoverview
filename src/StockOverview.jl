@@ -59,8 +59,10 @@ using .Service
 
 
 if !isinteractive()
-    schedulejob(execute_datapipeline, minute=0, hour=1)
-    start_scheduler()
+    Scheduler.addjob(execute_datapipeline, minute=0, hour=1)
+    Scheduler.start()
+    scheduler_task = Scheduler.status()
+    wait(scheduler_task)
 
     @info "==== application end ===="
 end
