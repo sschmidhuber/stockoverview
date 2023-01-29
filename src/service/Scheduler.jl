@@ -87,7 +87,7 @@ function start()
                         @warn "previously executed task is not yet completed, terminate forcefully"
                         schedule(job.task, ErrorException("timeout, terminate task forcefully"); error=true)
                     end
-                    @info "execute $(nameof(job.func))"
+                    @info "start job: \"$(nameof(job.func))\""
                     job.lastexecution = current_period
                     job.task = Threads.@spawn job.func()
                 end

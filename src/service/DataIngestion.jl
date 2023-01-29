@@ -174,13 +174,11 @@ available data.
 """
 function prepare_security_data(ingest_date::Date)
     @info "prepare security data"
-    isin_mapping = read_parquet("isin_mapping.parquet", source, ingest_date)
+    isins = (read_parquet("isin_mapping.parquet", source, ingest_date)).ISIN
     latest_ingest_date = getlastingestdate(prepared)
     securities = read_parquet("security_data.parquet", prepared, latest_ingest_date)
-    new_securities = setdiff(isin_mapping.ISIN, securities.isin)
-    isin_mapping = nothing
-    GC.gc()
-    @info "$(length(new_securities)) new securities identified"
+    setdiff!(isins, securities.isin)
+    @info "$(length(isins)) new securities identified"
 
     #=
     batchsize = 70_000
@@ -202,7 +200,7 @@ function prepare_security_data(ingest_date::Date)
     end=#
 
 
-    foreach(new_securities) do isin
+    foreach(isins) do isin
         securityheader = fetch_securityheader(isin)
         push!(securities, (securityheader.isin, securityheader.wkn, securityheader.name, securityheader.type))
         if(securityheader.type !== missing && securityheader.type == "Share")
