@@ -209,16 +209,15 @@ Results are not persisted.
 function filter_and_join(ingest_date::Date)
     @info "filter and join security and company data"
     securities = read_parquet("security_data.parquet", prepared, ingest_date)
+    securities = securities[securities.type .=== "Share",:]
     isin_mapping = read_parquet("isin_mapping.parquet", source, ingest_date)
     
     securities = @chain securities begin
-        @subset(:type .== "Share")
         leftjoin(isin_mapping, on = :isin => :ISIN)
         rename(:LEI => :lei)
     end
 
     isin_mapping = nothing
-    GC.gc()
     
     companies = read_parquet("company_data.parquet", source, ingest_date)
     companies = @chain companies begin
