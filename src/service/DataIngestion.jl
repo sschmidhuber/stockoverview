@@ -174,31 +174,18 @@ available data.
 """
 function prepare_security_data(ingest_date::Date)
     @info "prepare security data"
+    BATCH_SIZE = 50_000   # maximum number of new security records
+
     isins = (read_parquet("isin_mapping.parquet", source, ingest_date)).ISIN
     latest_ingest_date = getlastingestdate(prepared)
     securities = read_parquet("security_data.parquet", prepared, latest_ingest_date)
     setdiff!(isins, securities.isin)
     @info "$(length(isins)) new securities identified"
 
-    #=
-    batchsize = 70_000
-    counter = 0
-    progress = 0
-    foreach(first(new_securities, batchsize)) do isin
-        securityheader = fetch_securityheader(isin)
-        push!(securities, (securityheader.isin, securityheader.wkn, securityheader.name, securityheader.type))
-        if(securityheader.type !== missing && securityheader.type == "Share")
-            @info "$(securityheader.isin): $(securityheader.name)"
-        end
-        sleep(0.3)
-        counter += 1
-        newprogress = round(Int, counter/batchsize*100)
-        if newprogress > progress
-            @info "fetching security information completed to $newprogress %"
-            progress = newprogress
-        end
-    end=#
-
+    if length(isins) > BATCH_SIZE
+        @info "number of new securities exceeds batch size, therefore only first $BATCH_SIZE securities will be processed in current pipeline run"
+        isins = isins[1:BATCH_SIZE]
+    end
 
     foreach(isins) do isin
         securityheader = fetch_securityheader(isin)

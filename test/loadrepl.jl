@@ -24,4 +24,4 @@ using .DataRetrieval
 includet("../src/service/DataIngestion.jl")
 #include("../src/service/Service.jl")
 
-ingestdate = Date("2022-11-30")
+ingest_date = Date("2022-11-30")
