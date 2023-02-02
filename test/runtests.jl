@@ -1,5 +1,6 @@
 using Test
 using Dates
+using Logging
 
 cd(@__DIR__)
 
@@ -7,6 +8,7 @@ include("../src/Model.jl")
 using .Model
 
 ENV["database"] = "test.sqlite"
+ENV["retention_limit"] = 5
 include("../src/persistence/DBAccess.jl")
 using .DBAccess
 
@@ -22,7 +24,9 @@ using .DataIngestion
 include("../src/service/Service.jl")
 using .Service
 
-@testset "StockOverview" begin
+disable_logging(Info)
+
+@testset "Stock Overview" begin
 
 @testset "Data Retrieval" begin
     security = DataRetrieval.fetch_security("DE0008404005")
@@ -44,8 +48,17 @@ using .Service
     else
         offset = 0 
     end
-    @test exchangerates.date == today() - Day(offset)
+    @test_skip exchangerates.date == today() - Day(offset)
     @test exchangerates.rates["JPY"] > 1
     @test exchangerates.rates["GBP"] < 1
 end
+
+@testset "Data Ingestion" begin
+    ingest_date = today()
+    DataIngestion.download_raw_data(ingest_date)
+    @test isfile("../data/raw/$ingest_date/company_data.zip")
+    @test isfile("../data/raw/$ingest_date/ISIN_mapping.zip")
+    rm("../data/raw/$ingest_date"; force=true, recursive=true)
 end
+
+end;

@@ -40,20 +40,30 @@ function execute_datapipeline()
     
     with_logger(logger) do
         start = now()
+        local time_elapsed
         @info "execute data pipeline for ingest date: $ingest_date -- $start"
-        download_raw_data(ingest_date)
-        extract_raw_data(ingest_date)
-        transform_company_data(ingest_date)
-        transform_isin_mapping(ingest_date)
-        remove_raw_data(ingest_date)
-        prepare_security_data(ingest_date)
-        # update company data: countries, normalize names,...
-        #securities, companies = filter_and_join(ingest_date)
-        #write_to_db(securities, companies)
-        cleanup(RETENTION_LIMIT)        
+        try
+            download_raw_data(ingest_date)
+            extract_raw_data(ingest_date)
+            transform_company_data(ingest_date)
+            transform_isin_mapping(ingest_date)
+            remove_raw_data(ingest_date)
+            prepare_security_data(ingest_date)
+            # update company data: countries, normalize names,...
+            securities, companies = filter_and_join(ingest_date)
+            write_to_db(securities, companies)
+            cleanup(RETENTION_LIMIT)        
+            GC.gc()
+            ## in spereate function
+            # update security and company data in DB based on timestamps
+        catch e
+            showerror(e)
+            time_elapsed = canonicalize(now() - start)
+            @error "pipeline execution aborted after: $time_elapsed -- $(now())"
 
-        ## in spereate function
-        # update security and company data in DB based on timestamps
+            return nothing
+        end
+        
         time_elapsed = canonicalize(now() - start)
         @info "pipeline execution completed in: $time_elapsed -- $(now())"
     end
@@ -72,9 +82,23 @@ function download_raw_data(ingest_date::Date)
 
     # download raw files
     LEI_zip = download_company_data(ingest_date)
+    if isnothing(LEI_zip) || !isfile(LEI_zip)
+        @error "invlid LEI zip file: $LEI_zip"
+        throw(ErrorException("LEI download failed"))
+    end
     ISIN_mapping_zip = download_isin_mapping(ingest_date)
+    if isnothing(ISIN_mapping_zip) || !isfile(ISIN_mapping_zip)
+        @error "invlid ISIN mapping zip file: $ISIN_mapping_zip"
+        throw(ErrorException("ISIN mapping download failed"))
+    end
 
     # copy temporary files to raw layer
+    if isfile(LEI_zip) && isfile(ISIN_mapping_zip)
+        @info "move files to raw data layer for further processing"
+    else
+        @error "file validation failed"
+        throw(ErrorException("file download failed"))
+    end
     tmp_to_raw(LEI_zip, "company_data.zip", ingest_date)
     tmp_to_raw(ISIN_mapping_zip, "ISIN_mapping.zip", ingest_date)
 end

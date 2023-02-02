@@ -21,6 +21,10 @@ Move temporary file to raw data layer.
 function tmp_to_raw(file::AbstractString, newfilename::AbstractString, ingest_date::Date)
     mkpath("../data/raw/$ingest_date")
     mv(file, "../data/raw/$ingest_date/$newfilename"; force=true)
+    if !isfile("../data/raw/$ingest_date/$newfilename")
+        @error "failed to move file: $newfilename"
+        throw(ErrorException("failed to move file to raw layer"))
+    end
 end
 
 
