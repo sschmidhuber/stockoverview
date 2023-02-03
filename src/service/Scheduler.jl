@@ -16,7 +16,7 @@ end
 Job(func, minute, hour, dayofweek, dayofmonth) = Job(func, nothing, nothing, minute, hour, dayofweek, dayofmonth)
 
 
-const interval = 45 # interval between cheicking if a task execution is scheduled
+const interval = 20 # interval between cheicking if a task execution is scheduled
 const jobs = Vector{Job}()
 job_scheduler::Union{Task,Nothing} = nothing
 
@@ -83,7 +83,7 @@ function start()
             if match(current_time, job)
                 current_period = period_id(current_time)
                 if job.lastexecution != current_period
-                    if !isnothing(job.task) && !istaskdone(job.task)
+                    if !isnothing(job.task) || !istaskdone(job.task)
                         @warn "previously executed task is not yet completed, terminate forcefully"
                         schedule(job.task, ErrorException("timeout, terminate task forcefully"); error=true)
                     end
@@ -93,7 +93,7 @@ function start()
                 end
             end
         end
-
+        GC.safepoint()
         sleep(interval)
     end
 
