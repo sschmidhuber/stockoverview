@@ -1,6 +1,7 @@
 using Test
 using Dates
 using Logging
+using Chain
 
 cd(@__DIR__)
 
@@ -21,14 +22,19 @@ using .DataRetrieval
 include("../src/service/DataIngestion.jl")
 using .DataIngestion
 
+include("../src/service/Scheduler.jl")
+using .Scheduler
+
 include("../src/service/Service.jl")
 using .Service
 
-disable_logging(Info)
+debug =  ConsoleLogger(stderr, Debug)
+#disable_logging(Info)
 
 @testset "Stock Overview" begin
 
 @testset "Data Retrieval" begin
+    @info "-- test data retrieval --"
     security = DataRetrieval.fetch_security("DE0008404005")
     @test security isa Model.Security
     @test security.name == "Allianz"
@@ -48,17 +54,53 @@ disable_logging(Info)
     else
         offset = 0 
     end
-    @test_skip exchangerates.date == today() - Day(offset)
+    @test exchangerates.date == today() - Day(offset)
     @test exchangerates.rates["JPY"] > 1
     @test exchangerates.rates["GBP"] < 1
 end
 
+
 @testset "Data Ingestion" begin
+    @info "-- test data ingestion --"
     ingest_date = today()
     DataIngestion.download_raw_data(ingest_date)
     @test isfile("../data/raw/$ingest_date/company_data.zip")
     @test isfile("../data/raw/$ingest_date/ISIN_mapping.zip")
     rm("../data/raw/$ingest_date"; force=true, recursive=true)
+end
+
+
+"""
+    rmtemp()
+
+    Remove temporary files in current working directory
+"""
+function rmtemp()
+    @chain readdir(pwd()) begin
+        filter(x -> startswith(x, "jl_"),_)
+        rm.(_)
+    end
+end
+
+@testset "Scheduler" begin
+    @info "-- test scheduler --"
+    rmtemp()
+    func = () -> mktemp(pwd())
+    Scheduler.addjob(func)
+    Scheduler.start()
+    sleep(1)
+    @test Scheduler.status() |> istaskstarted == true
+    sleep(60)
+    Scheduler.stop()
+
+    # count temporary test files
+    tmpfiles = @chain readdir(pwd()) begin
+       filter(x -> startswith(x, "jl_"),_)
+       isempty(_) ? 0 : length(_)
+    end
+    rmtemp()
+    @test 1 <= tmpfiles <= 2
+    @test Scheduler.status() |> istaskdone == true
 end
 
 end;

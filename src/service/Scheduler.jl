@@ -83,7 +83,7 @@ function start()
             if match(current_time, job)
                 current_period = period_id(current_time)
                 if job.lastexecution != current_period
-                    if !isnothing(job.task) || !istaskdone(job.task)
+                    if !isnothing(job.task) && !istaskdone(job.task)
                         @warn "previously executed task is not yet completed, terminate forcefully"
                         schedule(job.task, ErrorException("timeout, terminate task forcefully"); error=true)
                     end
@@ -125,9 +125,9 @@ Prints status information about the scheduler job and returns the job scheduler 
 """
 function status()
     if isnothing(job_scheduler) || istaskdone(job_scheduler)
-        println("scheduler job is not running")
+        @info "scheduler job is not running"
     else
-        println("scheduler job is running")
+        @info "scheduler job is running"
     end
 
     return job_scheduler
