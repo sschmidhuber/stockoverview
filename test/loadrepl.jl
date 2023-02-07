@@ -1,6 +1,8 @@
 using Revise
 using LoggingExtras
 using Dates
+using Pkg
+
 
 ENV["database"] = "test.sqlite"
 ENV["retention_limit"] = 5
@@ -23,6 +25,13 @@ using .DataRetrieval
 
 includet("../src/service/DataIngestion.jl")
 using .DataIngestion
-#include("../src/service/Service.jl")
 
-ingest_date = Date("2022-11-30")
+includet("../src/service/Service.jl")
+using .Service
+
+includet("../src/presentation/View.jl")
+using .View
+
+View.up()
+
+ingest_date = Date("2022-11-30");

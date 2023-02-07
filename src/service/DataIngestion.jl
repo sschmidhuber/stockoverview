@@ -57,7 +57,7 @@ function execute_datapipeline()
             ## in spereate function
             # update security and company data in DB based on timestamps
         catch e
-            showerror(e)
+            showerror(stderr, e)
             time_elapsed = canonicalize(now() - start)
             @error "pipeline execution aborted after: $time_elapsed -- $(now())"
 
@@ -198,7 +198,7 @@ available data.
 """
 function prepare_security_data(ingest_date::Date)
     @info "prepare security data"
-    BATCH_SIZE = 50_000   # maximum number of new security records
+    BATCH_SIZE = 50_000   # maximum number of new security records to be processed per pipeline execution
 
     isins = (read_parquet("isin_mapping.parquet", source, ingest_date)).ISIN
     latest_ingest_date = getlastingestdate(prepared)

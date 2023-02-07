@@ -32,6 +32,12 @@ if !isinteractive()
     @info "==== application start ===="
 end
 
+function shutdown()
+    @info "==== application end ===="
+end
+
+atexit(shutdown)
+
 # load local modules
 include("Model.jl")
 using .Model
@@ -57,14 +63,11 @@ using .Service
 #include("presentation/View.jl")
 #using .View
 
-
 if !isinteractive()
     Scheduler.addjob(execute_datapipeline, minute=0, hour=1)
     Scheduler.start()
     scheduler_task = Scheduler.status()
     wait(scheduler_task)
-
-    @info "==== application end ===="
 end
 
 end # module

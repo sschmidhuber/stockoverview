@@ -118,7 +118,7 @@ Write parquet file to specified data layer.
 function write_parquet(df::DataFrame, filename::AbstractString, layer::DataLayer, ingest_date::Date)
     path = "$(PATHS[Int(layer)])/$ingest_date"
     mkpath(path)
-    Parquet.write_parquet("$path/$filename", df, compression_codec=:zstd)
+    Parquet.write_parquet("$path/$filename", df, compression_codec="SNAPPY")
 end
 
 
