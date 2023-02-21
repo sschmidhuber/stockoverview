@@ -1,0 +1,4 @@
+[datapipeline]
+
+# DEBUG or INFO
+loglevel = "DEBUG"

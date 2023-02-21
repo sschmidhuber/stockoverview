@@ -11,6 +11,7 @@ using Dates
 using LightXML
 using LoggingExtras
 using StringBuilders
+using TOML
 
 export execute_datapipeline
 
@@ -26,6 +27,7 @@ Run the data pipeline from raw to prepared layer.
 function execute_datapipeline()
     ingest_date = today()
     local logger
+    local loglevel
     if !isinteractive()
         mkpath("../logs/datapipeline")
         io = open("../logs/datapipeline/$ingest_date.log", "w+")
@@ -33,7 +35,18 @@ function execute_datapipeline()
         logger = FormatLogger(io) do io, args
             println(io, args.level, " -- ", Dates.format(now(), dateformat), ": ", args.message, "  (", args._module, ":", args.line, ")")
         end
-        logger = MinLevelLogger(logger, Logging.Info)
+        try
+            config = TOML.parsefile("../config/stockoverview.toml")
+            if config["datapipeline"]["loglevel"] == "DEBUG"
+                loglevel = Logging.Debug
+            else
+                loglevel = Logging.Info                
+            end
+        catch e
+            @warn "failed to read config"
+            loglevel = Logging.Debug
+        end
+        logger = MinLevelLogger(logger, loglevel)
     else
         logger = current_logger()
     end
@@ -52,10 +65,10 @@ function execute_datapipeline()
             # update company data: countries, normalize names,...
             securities, companies = filter_and_join(ingest_date)
             write_to_db(securities, companies)
-            cleanup(RETENTION_LIMIT)        
-            GC.gc()
+            cleanup(RETENTION_LIMIT)
             ## in spereate function
             # update security and company data in DB based on timestamps
+            # score security priority (marketcap, data quality, trading volume)
         catch e
             showerror(stderr, e)
             time_elapsed = canonicalize(now() - start)
@@ -267,8 +280,8 @@ function write_to_db(securities::DataFrame, companies::DataFrame)
     company_records = insert_update_company(company_entities)
     security_records = insert_update_security(security_entities)
 
-    @info "$company_records of $(nrow(companies)) company records successfully inserted/updated"
-    @info "$security_records of $(nrow(securities)) security records successfully inserted/updated"
+    @info "$company_records of $(nrow(companies)) company records updated / inserted"
+    @info "$security_records of $(nrow(securities)) security records updated / inserted"
 end
 
 end # module

@@ -60,11 +60,14 @@ function insert_update_security_common(db, security)
     try
         rs = DBInterface.execute(db, "select * from security where isin = '$(security.isin)';")
         if isempty(rs)
+            @debug "new record: $(security.symbol), $(security.wkn), $(security.lei), $(security.name), $(security.type), $(security.main), $(security.outstanding)"
             stmt = SQLite.Stmt(db, "INSERT INTO security (isin, symbol, wkn, lei, name, type, main, outstanding) VALUES (?,?,?,?,?,?,?,?);")
             DBInterface.execute(stmt, [security.isin, security.symbol, security.wkn, security.lei, security.name, security.type, security.main, security.outstanding])
         else
             dfr = DataFrame(rs) |> first
             if hash([dfr.symbol, dfr.wkn, dfr.lei, dfr.name, dfr.type, dfr.main, dfr.outstanding]) != hash([security.symbol, security.wkn, security.lei, security.name, security.type, security.main, security.outstanding])
+                @debug "old record: $(dfr.symbol), $(dfr.wkn), $(dfr.lei), $(dfr.name), $(dfr.type), $(dfr.main), $(dfr.outstanding)"
+                @debug "new record: $(security.symbol), $(security.wkn), $(security.lei), $(security.name), $(security.type), $(security.main), $(security.outstanding)"
                 stmt = SQLite.Stmt(db, "UPDATE security SET symbol=?, wkn=?, lei=?, name=?, type=?, main=?, outstanding=? where isin=?;")
                 DBInterface.execute(stmt, [security.symbol, security.wkn, security.lei, security.name, security.type, security.main, security.outstanding, security.isin])
             else
@@ -104,11 +107,14 @@ function insert_update_company_common(db, company)
     try
         rs = DBInterface.execute(db, "select * from company where lei = '$(company.lei)';")
         if  isempty(rs)
+            @debug "new record: $(company.name), $(company.location.address), $(company.location.city), $(company.location.postal_code), $(company.location.country), $(company.profile), $(company.url), $(company.founded)"
             stmt = SQLite.Stmt(db, "INSERT INTO company (lei, name, address, city, postal_code, country, profile, url, founded) VALUES (?,?,?,?,?,?,?,?,?);")
             DBInterface.execute(stmt, [company.lei, company.name, company.location.address, company.location.city, company.location.postal_code, company.location.country, company.profile, company.url, company.founded])
         else
             dfr = DataFrame(rs) |> first
             if hash([dfr.name, dfr.address, dfr.city, dfr.postal_code, dfr.country, dfr.profile, dfr.url, dfr.founded]) != hash([company.name, company.location.address, company.location.city, company.location.postal_code, company.location.country, company.profile, company.url, company.founded])
+                @debug "old record: $(dfr.name), $(dfr.address), $(dfr.city), $(dfr.postal_code), $(dfr.country), $(dfr.profile), $(dfr.url), $(dfr.founded)"
+                @debug "new record: $(company.name), $(company.location.address), $(company.location.city), $(company.location.postal_code), $(company.location.country), $(company.profile), $(company.url), $(company.founded)"
                 stmt = SQLite.Stmt(db, "UPDATE company SET name=?, address=?, city=?, postal_code=?, country=?, profile=?, url=?, founded=? where lei=?;")
                 DBInterface.execute(stmt, [company.name, company.location.address, company.location.city, company.location.postal_code, company.location.country, company.profile, company.url, company.founded, company.lei])
             else
