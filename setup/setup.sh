@@ -19,7 +19,7 @@ fi
 if [[ $ID == "debian" || $NAME == "ubuntu" ]]; then
     echo "\"$PRETTY_NAME\" detected"
     apt install julia redis sed nano htop
-elif [[ $ID == "fedora" ]]; then
+elif [[ $ID == "fedora" || $ID == "ol" ]]; then
     echo "\"$PRETTY_NAME\" detected"
     dnf install julia redis sed nano htop
 else
