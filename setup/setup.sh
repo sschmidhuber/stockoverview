@@ -53,6 +53,10 @@ sed -i "s|USER|$UNPRIVILEGED_USER|" ./setup/stockoverview.service_tmp
 mv ./setup/stockoverview.service_tmp "${UNIT_DIR}/stockoverview.service"
 chmod +r "${UNIT_DIR}/stockoverview.service"
 
+if [[ $ID == "fedora" || $ID == "ol" ]]; then
+    /sbin/restorecon -v /etc/systemd/system/stockoverview.service
+fi
+
 systemctl daemon-reload
 
 exit 0
