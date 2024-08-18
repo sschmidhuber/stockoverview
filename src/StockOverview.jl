@@ -1,16 +1,8 @@
 #! /usr/bin/env julia
 
-#=
-TODO:
-
-* stop resource lack in data pipeline
-* write data to DB
-
-=#
-
 module StockOverview
 
-export Model, Scheduler, DataRetrieval, DBAccess, DataIngestion
+export Model, Scheduler, DataRetrieval, DBAccess, FSAccess, DataIngestion, Service
 
 using LoggingExtras
 using Dates
@@ -60,14 +52,14 @@ using .Scheduler
 include("service/Service.jl")
 using .Service
 
-#include("presentation/View.jl")
-#using .View
+include("presentation/View.jl")
+using .View
 
-if !isinteractive()
+#=if !isinteractive()
     Scheduler.addjob(execute_datapipeline, minute=0, hour=1)
     Scheduler.start()
     scheduler_task = Scheduler.status()
     wait(scheduler_task)
-end
+end=#
 
 end # module

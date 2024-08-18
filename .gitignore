@@ -26,6 +26,7 @@ docs/site/
 # data files
 data/
 *.log
+*.parquet
 
 # development environment
 *.code-workspace
